@@ -1,0 +1,11 @@
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\bin\Debug\net8.0\Jewellery.Domain.deps.json
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\bin\Debug\net8.0\Jewellery.Domain.dll
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\bin\Debug\net8.0\Jewellery.Domain.pdb
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\Jewellery.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\Jewellery.Domain.AssemblyInfoInputs.cache
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\Jewellery.Domain.AssemblyInfo.cs
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\Jewellery.Domain.csproj.CoreCompileInputs.cache
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\Jewellery.Domain.dll
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\refint\Jewellery.Domain.dll
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\Jewellery.Domain.pdb
+C:\Shobhit\My Project\SonyGroup_CoreProject\Jewellery.Domain\obj\Debug\net8.0\ref\Jewellery.Domain.dll
