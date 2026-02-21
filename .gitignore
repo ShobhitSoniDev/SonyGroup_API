@@ -1,0 +1,8 @@
+.vs/
+bin/
+obj/
+*.suo
+*.user
+*.db
+*.cache
+*.pdb

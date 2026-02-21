@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Jewellery.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+89dc3c071859f9d3878166f9c06a5a5cee4d03f4")]
 [assembly: System.Reflection.AssemblyProductAttribute("Jewellery.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Jewellery.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
