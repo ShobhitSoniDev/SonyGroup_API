@@ -12,11 +12,16 @@ using Jewellery.API.Filters;
 using System.Data;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Infrastructure.Transactions.Repositories;
+using Jewellery.Application.Common.Interfaces;
+using Jewellery.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ------------------ JWT Token Service ------------------
 builder.Services.AddScoped<JwtTokenService>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // ------------------ Controllers & Swagger ------------------
 builder.Services.AddControllers();
@@ -89,6 +94,7 @@ builder.Services.AddScoped<IErrorLogRepository, ErrorLogRepository>();
 //--------------------Auth----------------------------
 builder.Services.AddScoped<ILoginRepository, LoginRepository>();
 builder.Services.AddScoped<ISignUpRepository, SignUpRepository>();
+builder.Services.AddScoped<IGetMenuRepository, GetMenuRepository>();
 
 //--------------------Master-------------------------
 builder.Services.AddScoped<IMetalRepository, MetalRepository>();

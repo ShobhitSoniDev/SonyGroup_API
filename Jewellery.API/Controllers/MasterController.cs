@@ -18,6 +18,11 @@ namespace Jewellery.API.Controllers.Master
         {
             _mediator = mediator;
         }
+        [HttpGet("GetMenu")]
+        public async Task<IActionResult> GetMenu()
+        {
+            return Ok(await Mediator.Send(new GetMenuQuery()));
+        }
 
         [HttpPost("MetalMaster_Manage")]
         public async Task<IActionResult> MetalMaster_Manage([FromBody] MetalMaster_ManageCommand command)

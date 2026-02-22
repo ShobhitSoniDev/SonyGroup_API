@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using Jewellery.Application.Common.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
 using Microsoft.Data.SqlClient;
@@ -9,10 +10,11 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
     public class StockRepository : IStockRepository
     {
         private readonly IConfiguration _configuration;
-
-        public StockRepository(IConfiguration configuration)
+        private readonly ICurrentUserService _currentUser;
+        public StockRepository(IConfiguration configuration, ICurrentUserService currentUser)
         {
             _configuration = configuration;
+            _currentUser = currentUser;
         }
 
         public async Task<dynamic> StockTransaction_ManageAsync(StockTransactionModel product)
@@ -20,6 +22,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
 
             var parameters = new DynamicParameters();
+            parameters.Add("@UserId", _currentUser.UserId);
             parameters.Add("@StockId", product.StockId);
             parameters.Add("@ProductId", product.ProductId);
             parameters.Add("@TransactionType", product.TransactionType);

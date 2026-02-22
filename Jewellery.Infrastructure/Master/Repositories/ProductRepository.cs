@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using Jewellery.Application.Common.Interfaces;
 using Jewellery.Application.Master.Interfaces;
 using Jewellery.Domain.Entities;
 using Microsoft.Data.SqlClient;
@@ -9,10 +10,11 @@ namespace Jewellery.Infrastructure.Master.Repositories
     public class ProductRepository : IProductRepository
     {
         private readonly IConfiguration _configuration;
-
-        public ProductRepository(IConfiguration configuration)
+        private readonly ICurrentUserService _currentUser;
+        public ProductRepository(IConfiguration configuration, ICurrentUserService currentUser)
         {
             _configuration = configuration;
+            _currentUser = currentUser;
         }
 
         public async Task<dynamic> ProductMaster_ManageAsync(ProductMasterModel product)
@@ -20,7 +22,7 @@ namespace Jewellery.Infrastructure.Master.Repositories
             using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
 
             var parameters = new DynamicParameters();
-
+            parameters.Add("@UserId", _currentUser.UserId);
             parameters.Add("@ProductId", product.ProductId);
             parameters.Add("@ProductName", product.ProductName);
             parameters.Add("@CategoryId", product.CategoryId);
