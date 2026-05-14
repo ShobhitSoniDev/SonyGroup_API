@@ -57,15 +57,17 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ------------------ ✅ CORS (IMPORTANT) ------------------
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000","https://jewelleryapi20260513115456-a3dmbncpfnhueghy.southindia-01.azurewebsites.net/api/") // Next.js frontend
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy.WithOrigins(
+                    "http://localhost:3000",
+                    "https://jewelleryapi20260513115456-a3dmbncpfnhueghy.southindia-01.azurewebsites.net"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
