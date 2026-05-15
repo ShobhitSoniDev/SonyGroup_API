@@ -64,7 +64,7 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(
                     "http://localhost:3000",
-                    "https://jewelleryapi20260513115456-a3dmbncpfnhueghy.southindia-01.azurewebsites.net"
+                    "https://kind-pebble-0d7eb0a00.7.azurestaticapps.net"
                 )
                 .AllowAnyHeader()
                 .AllowAnyMethod();
