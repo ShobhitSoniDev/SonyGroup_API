@@ -67,7 +67,8 @@ builder.Services.AddCors(options =>
                     "https://kind-pebble-0d7eb0a00.7.azurestaticapps.net"
                 )
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
 });
 
