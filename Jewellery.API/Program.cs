@@ -62,13 +62,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins(
-                    "http://localhost:3000",
-                    "https://kind-pebble-0d7eb0a00.7.azurestaticapps.net"
-                )
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials();
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
         });
 });
 
