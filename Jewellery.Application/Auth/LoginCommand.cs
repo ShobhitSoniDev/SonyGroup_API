@@ -54,11 +54,12 @@ namespace Jewellery.Application.Auth
                         var userName = LoginResponse.UserName.ToString();
                         var roleName = LoginResponse.RoleName.ToString();
                         var token = _jwtService.GenerateToken(UserId, userName, roleName);
+                        LoginResponse.token = token;
                         return new ResponseModel
                         {
                             Code = 1,
                             Message = LoginResponse.Message,
-                            Data = token
+                            Data = LoginResponse
                         };
                     }
                     else

@@ -7,7 +7,7 @@ using Jewellery.Application.Transactions.Commands;
 
 namespace Jewellery.API.Controllers.Transactions
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     [ServiceFilter(typeof(ExceptionFilter))]
     [Route("api/[controller]")]
@@ -26,6 +26,11 @@ namespace Jewellery.API.Controllers.Transactions
             var result = await _mediator.Send(command);
             return Ok(result);
         }
-        
+        [HttpPost("LoanEntry_Save")]
+        public async Task<IActionResult> LoanEntry_Save([FromForm] LoanEntry_ManageCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
     }
 }

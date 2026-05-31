@@ -1,19 +1,20 @@
-using MediatR;
+using Jewellery.API.Filters;
+using Jewellery.Application.Auth.Interfaces;
+using Jewellery.Application.Common.Interfaces;
 using Jewellery.Application.Master.Commands;
 using Jewellery.Application.Master.Interfaces;
+using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Infrastructure.Master.Repositories;
-using Microsoft.Data.SqlClient;
-using System.Text;
+using Jewellery.Infrastructure.Services;
+using Jewellery.Infrastructure.Transactions.Repositories;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Jewellery.Application.Auth.Interfaces;
-using Jewellery.API.Filters;
 using System.Data;
-using Jewellery.Application.Transactions.Interfaces;
-using Jewellery.Infrastructure.Transactions.Repositories;
-using Jewellery.Application.Common.Interfaces;
-using Jewellery.Infrastructure.Services;
+using System.Text;
+using System.Transactions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,9 +109,18 @@ builder.Services.AddScoped<IGetMenuRepository, GetMenuRepository>();
 builder.Services.AddScoped<IMetalRepository, MetalRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
 // Transactions
 builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<ILoanRepository, LoanRepository>();
+// ------------------END Repository DI ------------------
+
+// --------------------AI------------------------ -
+builder.Services.AddScoped<AIService>();
+builder.Services.AddScoped<IFAQMasterRepository, FAQMasterRepository>();
+// ------------------END Repository DI ------------------
+
 
 // ------------------ Exception Filter ------------------
 builder.Services.AddScoped<ExceptionFilter>();
@@ -140,15 +150,15 @@ builder.Services.AddAuthorization();
 // ------------------ Build App ------------------
 var app = builder.Build();
 
-// ------------------ Swagger ------------------
-app.UseSwagger();
-
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Jewellery API V1");
-});
-
 // ------------------ Middleware ------------------
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Jewellery API V1");
+    });
+}
 
 app.UseHttpsRedirection();
 
