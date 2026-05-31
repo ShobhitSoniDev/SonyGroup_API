@@ -75,6 +75,7 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "https://kind-pebble-0d7eb0a00.7.azurestaticapps.net",
+                "https://calm-field-0490bf510.7.azurestaticapps.net",
                 "http://localhost:3000"
             )
             .AllowAnyHeader()
