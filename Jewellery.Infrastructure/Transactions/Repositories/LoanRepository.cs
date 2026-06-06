@@ -39,10 +39,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@MetalType", loan.MetalType);
             parameters.Add("@Weight", loan.Weight);
             parameters.Add("@ItemCount", loan.ItemCount);
-
             parameters.Add("@Description", loan.Description);
-            parameters.Add("@Remark", loan.Remark);
-
             parameters.Add("@PhotoPath", loan.PhotoPath); // 👈 CSV of images
 
             parameters.Add("@TypeId", loan.TypeId);

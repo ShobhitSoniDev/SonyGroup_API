@@ -5,14 +5,15 @@ using Jewellery.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
+using System.IO.IsolatedStorage;
 
 namespace Jewellery.Application.Transactions.Commands
 {
     public class LoanEntry_ManageCommand : IRequest<ResponseModel>
     {
-        public int LoanId { get; set; }
+        public string LoanId { get; set; }
 
-        public int CustomerId { get; set; }
+        public string CustomerId { get; set; }
 
         public string LoanType { get; set; } = string.Empty;
 
@@ -24,18 +25,15 @@ namespace Jewellery.Application.Transactions.Commands
 
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public int Duration { get; set; } = 0;
+        public string Duration { get; set; } = string.Empty;
         public string MetalType { get; set; } = string.Empty;
 
         public decimal Weight { get; set; }
 
-        public int ItemCount { get; set; }
+        public string ItemCount { get; set; }
 
         public string Description { get; set; } = string.Empty;
-
-        public string Remark { get; set; } = string.Empty;
-
-        public int TypeId { get; set; }
+        public string TypeId { get; set; }
 
         public List<IFormFile>? Photos { get; set; }
     }
@@ -54,7 +52,7 @@ namespace Jewellery.Application.Transactions.Commands
             try
             {
                 // ✅ VALIDATION (FIXED)
-                if (request.CustomerId <= 0)
+                if (string.IsNullOrEmpty(request.CustomerId))
                     return new ResponseModel { Code = 0, Message = "Invalid CustomerId" };
 
                 if (request.Amount <= 0)
@@ -123,7 +121,6 @@ namespace Jewellery.Application.Transactions.Commands
                     Weight = request.Weight,
                     ItemCount = request.ItemCount,
                     Description = request.Description,
-                    Remark = request.Remark,
                     PhotoPath = string.Join(",", fileNames),
                     TypeId = request.TypeId
                 };
