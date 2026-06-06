@@ -26,5 +26,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Jewellery.Domain\Jewellery.Domain.csproj" />
   </ItemGroup>
-
 </Project>

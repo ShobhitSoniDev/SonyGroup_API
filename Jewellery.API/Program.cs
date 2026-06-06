@@ -3,6 +3,7 @@ using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Common.Interfaces;
 using Jewellery.Application.Master.Commands;
 using Jewellery.Application.Master.Interfaces;
+using Jewellery.Application.Services.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Infrastructure.Master.Repositories;
 using Jewellery.Infrastructure.Services;
@@ -123,6 +124,9 @@ builder.Services.AddScoped<IFAQMasterRepository, FAQMasterRepository>();
 
 // ------------------ Exception Filter ------------------
 builder.Services.AddScoped<ExceptionFilter>();
+
+// ------------------ Services ------------------
+builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 
 // ------------------ JWT Authentication ------------------
 var jwtSettings = builder.Configuration.GetSection("Jwt");

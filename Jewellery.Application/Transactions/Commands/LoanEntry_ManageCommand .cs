@@ -1,5 +1,6 @@
 ﻿using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Master.Interfaces;
+using Jewellery.Application.Services.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
 using MediatR;
@@ -41,10 +42,12 @@ namespace Jewellery.Application.Transactions.Commands
         : IRequestHandler<LoanEntry_ManageCommand, ResponseModel>
     {
         private readonly ILoanRepository _loanRepository;
+        private readonly IBlobStorageService _blobStorageService;
 
-        public LoanEntry_ManageCommandHandler(ILoanRepository loanRepository)
+        public LoanEntry_ManageCommandHandler(ILoanRepository loanRepository, IBlobStorageService blobStorageService)
         {
             _loanRepository = loanRepository;
+            _blobStorageService = blobStorageService;
         }
 
         public async Task<ResponseModel> Handle(LoanEntry_ManageCommand request, CancellationToken cancellationToken)
@@ -80,12 +83,37 @@ namespace Jewellery.Application.Transactions.Commands
                     Directory.CreateDirectory(uploadPath);
 
                 var fileNames = new List<string>();
+                var fileUrls = new List<string>();
 
+                //if (request.Photos != null && request.Photos.Any())
+                //{
+                //    foreach (var file in request.Photos)
+                //    {
+                //        if (file == null || file.Length == 0) continue;
+
+                //        var ext = Path.GetExtension(file.FileName);
+                //        var allowedExt = new[] { ".jpg", ".jpeg", ".png" };
+
+                //        if (!allowedExt.Contains(ext.ToLower()))
+                //            continue;
+
+                //        var fileName = $"{Guid.NewGuid()}{ext}";
+                //        var filePath = Path.Combine(uploadPath, fileName);
+
+                //        using (var stream = new FileStream(filePath, FileMode.Create))
+                //        {
+                //            await file.CopyToAsync(stream, cancellationToken);
+                //        }
+
+                //        fileNames.Add(fileName);
+                //    }
+                //}
                 if (request.Photos != null && request.Photos.Any())
                 {
                     foreach (var file in request.Photos)
                     {
-                        if (file == null || file.Length == 0) continue;
+                        if (file == null || file.Length == 0)
+                            continue;
 
                         var ext = Path.GetExtension(file.FileName);
                         var allowedExt = new[] { ".jpg", ".jpeg", ".png" };
@@ -93,18 +121,22 @@ namespace Jewellery.Application.Transactions.Commands
                         if (!allowedExt.Contains(ext.ToLower()))
                             continue;
 
-                        var fileName = $"{Guid.NewGuid()}{ext}";
-                        var filePath = Path.Combine(uploadPath, fileName);
+                        // ☁️ CALL AZURE BLOB METHOD
+                        string folderName = "LoanProof";
+                        string FileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                        var uploadResult = await _blobStorageService.UploadFileAsync(file, FileName, folderName,0,1,0); // Second , Minute ,Hour
 
-                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        if (uploadResult.Success)
                         {
-                            await file.CopyToAsync(stream, cancellationToken);
+                            fileNames.Add(uploadResult.FileName);
+                            fileUrls.Add(uploadResult.FileUrl); // optional
                         }
-
-                        fileNames.Add(fileName);
+                        else
+                        {
+                            // optional: log error or skip
+                        }
                     }
                 }
-
                 // 📦 MAP MODEL
                 var model = new LoanEntryModel
                 {
