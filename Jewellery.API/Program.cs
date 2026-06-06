@@ -79,8 +79,7 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowAnyMethod();
     });
 });
 
