@@ -76,7 +76,7 @@ namespace Jewellery.Infrastructure.Services
             if (string.IsNullOrWhiteSpace(FileName))
                 return (false, "", FileName, "Please send file");
 
-            string fileNameWithFolder = $"{folderName}/{Path.GetExtension(FileName)}";
+            string fileNameWithFolder = $"{folderName}/{FileName}";
             string fileUrl = GetSecureFileUrl(fileNameWithFolder, expirySecond, expiryMinutes, expiryhour);
 
             return (true, fileUrl, FileName, "Uploaded successfully");

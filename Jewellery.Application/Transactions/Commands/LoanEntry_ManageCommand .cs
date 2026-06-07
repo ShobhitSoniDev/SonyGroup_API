@@ -5,6 +5,7 @@ using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO.IsolatedStorage;
 
@@ -12,29 +13,29 @@ namespace Jewellery.Application.Transactions.Commands
 {
     public class LoanEntry_ManageCommand : IRequest<ResponseModel>
     {
-        public string LoanId { get; set; }
+        public string LoanId { get; set; } = string.Empty;
 
-        public string CustomerId { get; set; }
+        public string CustomerId { get; set; } = string.Empty;
 
         public string LoanType { get; set; } = string.Empty;
 
-        public decimal Amount { get; set; }
+        public decimal Amount { get; set; } = 0;
 
         public string InterestType { get; set; } = string.Empty;
 
-        public decimal InterestRate { get; set; }
+        public decimal InterestRate { get; set; } = 0;
 
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Duration { get; set; } = string.Empty;
         public string MetalType { get; set; } = string.Empty;
 
-        public decimal Weight { get; set; }
+        public decimal Weight { get; set; } = 0;
 
-        public string ItemCount { get; set; }
+        public string ItemCount { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
-        public string TypeId { get; set; }
+        public string TypeId { get; set; } = string.Empty;
 
         public List<IFormFile>? Photos { get; set; }
     }
@@ -54,28 +55,34 @@ namespace Jewellery.Application.Transactions.Commands
         {
             try
             {
+                string folderName = "LoanProof";
                 // ✅ VALIDATION (FIXED)
-                if (string.IsNullOrEmpty(request.CustomerId))
-                    return new ResponseModel { Code = 0, Message = "Invalid CustomerId" };
-
-                if (request.Amount <= 0)
-                    return new ResponseModel { Code = 0, Message = "Invalid Amount" };
-
-                if (request.InterestRate < 0)
-                    return new ResponseModel { Code = 0, Message = "Invalid Interest Rate" };
-
-                if (string.IsNullOrWhiteSpace(request.LoanType))
-                    return new ResponseModel { Code = 0, Message = "LoanType required" };
-
-                if (request.LoanType.ToLower() == "girvi")
+                if (request.TypeId != "3" && request.TypeId != "5")
                 {
-                    if (string.IsNullOrWhiteSpace(request.MetalType))
-                        return new ResponseModel { Code = 0, Message = "MetalType required for Girvi" };
-
-                    if (request.Weight <= 0)
-                        return new ResponseModel { Code = 0, Message = "Invalid Weight" };
+                    if (string.IsNullOrEmpty(request.CustomerId))
+                        return new ResponseModel { Code = 0, Message = "Invalid CustomerId" };
                 }
+                if (request.TypeId == "1" || request.TypeId == "2")
+                {
+                    if (request.Amount <= 0)
+                        return new ResponseModel { Code = 0, Message = "Invalid Amount" };
 
+                    if (request.InterestRate < 0)
+                        return new ResponseModel { Code = 0, Message = "Invalid Interest Rate" };
+
+                    if (string.IsNullOrWhiteSpace(request.LoanType))
+                        return new ResponseModel { Code = 0, Message = "LoanType required" };
+
+                    if (request.LoanType.ToLower() == "girvi")
+                    {
+                        if (string.IsNullOrWhiteSpace(request.MetalType))
+                            return new ResponseModel { Code = 0, Message = "MetalType required for Girvi" };
+
+                        if (request.Weight <= 0)
+                            return new ResponseModel { Code = 0, Message = "Invalid Weight" };
+                    }
+
+                }
                 // 📁 FILE UPLOAD (SAFE VERSION)
                 var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "loan");
 
@@ -122,9 +129,8 @@ namespace Jewellery.Application.Transactions.Commands
                             continue;
 
                         // ☁️ CALL AZURE BLOB METHOD
-                        string folderName = "LoanProof";
                         string FileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-                        var uploadResult = await _blobStorageService.UploadFileAsync(file, FileName, folderName,0,1,0); // Second , Minute ,Hour
+                        var uploadResult = await _blobStorageService.UploadFileAsync(file, FileName, folderName, 0, 1, 0); // Second , Minute ,Hour
 
                         if (uploadResult.Success)
                         {
@@ -159,6 +165,23 @@ namespace Jewellery.Application.Transactions.Commands
 
                 var result = await _loanRepository.LoanEntry_ManageAsync(model);
 
+                if (request.TypeId == "5")
+                {
+                    if (result != null)
+                    {
+                        var loan = ((IEnumerable<dynamic>)result).First();
+
+                        var photoUrls = new List<string>();
+
+                        foreach (var photoName in loan.Photos.Split(','))
+                        {
+                            var file = await _blobStorageService.GetFileUrl(photoName.Trim(), folderName, 0, 5, 0);
+
+                            photoUrls.Add(file.Item2);
+                        }
+((IDictionary<string, object>)loan)["PhotoUrls"] = photoUrls;
+                    }
+                }
                 return new ResponseModel
                 {
                     Code = result != null ? 1 : 0,
