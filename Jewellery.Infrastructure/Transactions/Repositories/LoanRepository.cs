@@ -28,7 +28,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
 
             parameters.Add("@UserId", _currentUser.UserId);
             parameters.Add("@LoanId", loan.LoanId);
-            parameters.Add("@CustomerId", loan.CustomerId);
+            parameters.Add("@CustomerCode", loan.CustomerCode);
             parameters.Add("@LoanType", loan.LoanType);
             parameters.Add("@Amount", loan.Amount);
             parameters.Add("@InterestType", loan.InterestType);
@@ -41,7 +41,6 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@ItemCount", loan.ItemCount);
             parameters.Add("@Description", loan.Description);
             parameters.Add("@PhotoPath", loan.PhotoPath); // 👈 CSV of images
-
             parameters.Add("@TypeId", loan.TypeId);
 
             var result = await connection.QueryAsync(

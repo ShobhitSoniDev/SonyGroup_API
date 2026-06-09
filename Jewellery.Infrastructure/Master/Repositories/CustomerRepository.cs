@@ -17,13 +17,13 @@ namespace Jewellery.Infrastructure.Master.Repositories
             _currentUser = currentUser;
         }
 
-        public async Task<dynamic> ProductMaster_ManageAsync(CustomerMasterModel customer)
+        public async Task<dynamic> CustomerMaster_ManageAsync(CustomerMasterModel customer)
         {
             using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
 
             var parameters = new DynamicParameters();
             parameters.Add("@UserId", _currentUser.UserId);
-            parameters.Add("@CustomerId", customer.CustomerId);
+            parameters.Add("@CustomerCode", customer.CustomerCode);
             parameters.Add("@CustomerName", customer.CustomerName);
             parameters.Add("@MobileNo", customer.MobileNo);
             parameters.Add("@Email", customer.Email);

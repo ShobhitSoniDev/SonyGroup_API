@@ -15,7 +15,7 @@ namespace Jewellery.Application.Transactions.Commands
     {
         public string LoanId { get; set; } = string.Empty;
 
-        public string CustomerId { get; set; } = string.Empty;
+        public string CustomerCode { get; set; } = string.Empty;
 
         public string LoanType { get; set; } = string.Empty;
 
@@ -59,8 +59,8 @@ namespace Jewellery.Application.Transactions.Commands
                 // ✅ VALIDATION (FIXED)
                 if (request.TypeId != "3" && request.TypeId != "5")
                 {
-                    if (string.IsNullOrEmpty(request.CustomerId))
-                        return new ResponseModel { Code = 0, Message = "Invalid CustomerId" };
+                    if (string.IsNullOrEmpty(request.CustomerCode))
+                        return new ResponseModel { Code = 0, Message = "Invalid CustomerCode" };
                 }
                 if (request.TypeId == "1" || request.TypeId == "2")
                 {
@@ -147,7 +147,7 @@ namespace Jewellery.Application.Transactions.Commands
                 var model = new LoanEntryModel
                 {
                     LoanId = request.LoanId,
-                    CustomerId = request.CustomerId,
+                    CustomerCode = request.CustomerCode,
                     LoanType = request.LoanType,
                     Amount = request.Amount,
                     InterestType = request.InterestType,

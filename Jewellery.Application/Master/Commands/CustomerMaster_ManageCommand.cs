@@ -11,7 +11,7 @@ namespace Jewellery.Application.Master.Commands
     // ✅ Command
     public class CustomerMaster_ManageCommand : IRequest<ResponseModel>
     {
-        public string CustomerId { get; set; } = "";
+        public string CustomerCode { get; set; } = "";
         public string CustomerName { get; set; } = "";
         public string MobileNo { get; set; } = "";
         public string Email { get; set; } = "";
@@ -52,16 +52,16 @@ namespace Jewellery.Application.Master.Commands
                 }
                 var customermodel = new CustomerMasterModel
                 {
-                    CustomerId = request.CustomerId,
+                    CustomerCode = request.CustomerCode,
                     CustomerName = request.CustomerName,
                     MobileNo = request.MobileNo,
                     Email = request.Email,
                     Address = request.Address,
-                    City = request.CustomerName,
+                    City = request.City,
                     Pincode = request.Pincode,
                     TypeId = request.TypeId
                 };
-                var insertedproduct = await _customerRepository.ProductMaster_ManageAsync(customermodel);
+                var insertedproduct = await _customerRepository.CustomerMaster_ManageAsync(customermodel);
                 if (insertedproduct != null)
                 {
                     return new ResponseModel

@@ -5,7 +5,7 @@ namespace Jewellery.Application.Master.Interfaces
 {
     public interface ICustomerRepository
     {
-        Task<dynamic> ProductMaster_ManageAsync(CustomerMasterModel customer);
+        Task<dynamic> CustomerMaster_ManageAsync(CustomerMasterModel customer);
     }
 }
 

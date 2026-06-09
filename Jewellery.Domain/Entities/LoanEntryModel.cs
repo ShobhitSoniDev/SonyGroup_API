@@ -9,7 +9,7 @@ namespace Jewellery.Domain.Entities
     public class LoanEntryModel
     {
         public string LoanId { get; set; }
-        public string CustomerId { get; set; }
+        public string CustomerCode { get; set; }
         public string LoanType { get; set; }
         public decimal Amount { get; set; }
         public string InterestType { get; set; }

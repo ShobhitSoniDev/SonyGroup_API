@@ -8,7 +8,7 @@ namespace Jewellery.Domain.Entities
 {
     public class CustomerMasterModel
     {
-        public string CustomerId { get; set; } = "";
+        public string CustomerCode { get; set; } = "";
         public string CustomerName { get; set; } = "";
         public string MobileNo { get; set; } = "";
         public string Email { get; set; } = "";
