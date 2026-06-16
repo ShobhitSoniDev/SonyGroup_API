@@ -1,9 +1,10 @@
-﻿using MediatR;
-using Microsoft.AspNetCore.Mvc;
+﻿using Jewellery.API.Filters;
 using Jewellery.Application.Master.Commands;
-using Microsoft.AspNetCore.Authorization;
-using Jewellery.API.Filters;
+using Jewellery.Application.Reports.Queries;
 using Jewellery.Application.Transactions.Commands;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Jewellery.API.Controllers.Transactions
 {
@@ -18,6 +19,11 @@ namespace Jewellery.API.Controllers.Transactions
         public ReportsController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+        [HttpGet("Dashboard_GetData")]
+        public async Task<IActionResult> Dashboard_GetData()
+        {
+            return Ok(await Mediator.Send(new Dashboard_GetDataQuery()));
         }
 
         [HttpPost("GetLoanEntry")]

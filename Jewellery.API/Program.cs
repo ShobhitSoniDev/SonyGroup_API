@@ -123,6 +123,7 @@ builder.Services.AddScoped<IFAQMasterRepository, FAQMasterRepository>();
 
 //---------------------Reports-------------------------
 builder.Services.AddScoped<ILoanEntryReportRepository, LoanEntryReportsRepository>();
+builder.Services.AddScoped<IDashboard_GetDataRepository, Dashboard_GetDataRepository>();
 // ------------------END Reports DI ------------------
 
 // ------------------ Exception Filter ------------------

@@ -6,37 +6,37 @@ using System.Threading.Tasks;
 using Jewellery.Domain.Entities;
 using Jewellery.Application.Auth.Interfaces;
 
-namespace Jewellery.Application.Master.Commands
+namespace Jewellery.Application.Reports.Queries
 {
     // ✅ Command
-    public class GetMenuQuery : IRequest<ResponseModel>
+    public class Dashboard_GetDataQuery : IRequest<ResponseModel>
     {
 
     }
 
     // ✅ Handler
-    public class GetMenuQueryHandler
-        : IRequestHandler<GetMenuQuery, ResponseModel>
+    public class Dashboard_GetDataQueryHandler
+        : IRequestHandler<Dashboard_GetDataQuery, ResponseModel>
     {
-        private readonly IGetMenuRepository _getMenuRepository;
+        private readonly IDashboard_GetDataRepository _dashboard_GetDataRepository;
 
-        public GetMenuQueryHandler(IGetMenuRepository getMenuRepository)
+        public Dashboard_GetDataQueryHandler(IDashboard_GetDataRepository dashboard_GetDataRepository)
         {
-            _getMenuRepository = getMenuRepository;
+            _dashboard_GetDataRepository = dashboard_GetDataRepository;
         }
 
-        public async Task<ResponseModel> Handle(GetMenuQuery request, CancellationToken cancellationToken)
+        public async Task<ResponseModel> Handle(Dashboard_GetDataQuery request, CancellationToken cancellationToken)
         {
             try
             {
-                var GetMenu = await _getMenuRepository.GetMenuReturnAsync();
-                if (GetMenu != null)
+                var GetDashboardData = await _dashboard_GetDataRepository.Dashboard_GetDataAsync();
+                if (GetDashboardData != null)
                 {
                     return new ResponseModel
                     {
                         Code = 1,
                         Message = "SUCCESS",
-                        Data = GetMenu
+                        Data = GetDashboardData
                     };
                 }
                 else

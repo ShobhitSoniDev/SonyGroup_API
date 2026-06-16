@@ -23,7 +23,7 @@ namespace Jewellery.Infrastructure.Master.Repositories
             using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
 
             var parameters = new DynamicParameters();
-
+            parameters.Add("@UserId", _currentUser.UserId);
             parameters.Add("@LoanId", request.LoanId);
             parameters.Add("@CustomerId", request.CustomerId);
             parameters.Add("@LoanType", request.LoanType);
