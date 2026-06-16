@@ -121,6 +121,9 @@ builder.Services.AddScoped<AIService>();
 builder.Services.AddScoped<IFAQMasterRepository, FAQMasterRepository>();
 // ------------------END Repository DI ------------------
 
+//---------------------Reports-------------------------
+builder.Services.AddScoped<ILoanEntryReportRepository, LoanEntryReportsRepository>();
+// ------------------END Reports DI ------------------
 
 // ------------------ Exception Filter ------------------
 builder.Services.AddScoped<ExceptionFilter>();
