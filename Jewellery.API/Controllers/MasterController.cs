@@ -49,5 +49,10 @@ namespace Jewellery.API.Controllers.Master
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+        [HttpGet("GetLoan_Masters")]
+        public async Task<IActionResult> GetLoan_Masters()
+        {
+            return Ok(await Mediator.Send(new GetLoan_MastersQuery()));
+        }
     }
 }

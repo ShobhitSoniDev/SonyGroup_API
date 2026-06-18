@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Master\Queries\" />
     <Folder Include="Transactions\Models\" />
     <Folder Include="Transactions\Queries\" />
   </ItemGroup>

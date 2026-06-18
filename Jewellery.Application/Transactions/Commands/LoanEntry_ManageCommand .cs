@@ -28,13 +28,13 @@ namespace Jewellery.Application.Transactions.Commands
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Duration { get; set; } = string.Empty;
-        public string MetalType { get; set; } = string.Empty;
+        public string? MetalType { get; set; } = string.Empty;
 
-        public decimal Weight { get; set; } = 0;
+        public decimal? Weight { get; set; } = 0;
 
-        public string ItemCount { get; set; } = string.Empty;
+        public string? ItemCount { get; set; } = string.Empty;
 
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; } = string.Empty;
         public string TypeId { get; set; } = string.Empty;
 
         public List<IFormFile>? Photos { get; set; }
@@ -156,7 +156,7 @@ namespace Jewellery.Application.Transactions.Commands
                     EndDate = request.EndDate?.ToString("yyyy-MM-dd") ?? "",
                     Duration = request.Duration,
                     MetalType = request.MetalType,
-                    Weight = request.Weight,
+                    Weight = request.Weight ?? 0,
                     ItemCount = request.ItemCount,
                     Description = request.Description,
                     PhotoPath = string.Join(",", fileNames),
@@ -173,11 +173,20 @@ namespace Jewellery.Application.Transactions.Commands
 
                         var photoUrls = new List<string>();
 
-                        foreach (var photoName in loan.Photos.Split(','))
+                        if (!string.IsNullOrWhiteSpace(loan.Photos))
                         {
-                            var file = await _blobStorageService.GetFileUrl(photoName.Trim(), folderName, 0, 5, 0);
+                            foreach (var photoName in loan.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                var file = await _blobStorageService.GetFileUrl(
+                                    photoName.Trim(),
+                                    folderName,
+                                    0,
+                                    5,
+                                    0
+                                );
 
-                            photoUrls.Add(file.Item2);
+                                photoUrls.Add(file.Item2);
+                            }
                         }
 ((IDictionary<string, object>)loan)["PhotoUrls"] = photoUrls;
                     }

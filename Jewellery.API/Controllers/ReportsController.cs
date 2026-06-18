@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Jewellery.API.Controllers.Transactions
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     [ServiceFilter(typeof(ExceptionFilter))]
     [Route("api/[controller]")]
