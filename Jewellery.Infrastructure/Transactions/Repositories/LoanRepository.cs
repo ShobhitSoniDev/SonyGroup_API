@@ -51,5 +51,30 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
 
             return result;
         }
+        public async Task<dynamic> LoanTransactionsDetail_ManageAsync(LoanTransactionsDetailModel transaction)
+        {
+            using var connection = new SqlConnection(
+                _configuration.GetConnectionString("DefaultConnection"));
+
+            var parameters = new DynamicParameters();
+
+            parameters.Add("@LoanTransactionId", transaction.LoanTransactionId);
+            parameters.Add("@LoanId", transaction.LoanId);
+            parameters.Add("@TransactionTypeId", transaction.TransactionTypeId);
+            parameters.Add("@InterestRate", transaction.InterestRate);
+            parameters.Add("@TransactionDate", transaction.TransactionDate);
+            parameters.Add("@Amount", transaction.Amount);
+            parameters.Add("@Description", transaction.Description);
+            parameters.Add("@UserId", transaction.CreatedBy);
+            parameters.Add("@TypeId", transaction.TypeId);
+
+            var result = await connection.QueryAsync(
+                "Jewellery.LoanTransactionsDetail_Manage",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result;
+        }
     }
 }

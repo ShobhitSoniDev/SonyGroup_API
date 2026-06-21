@@ -165,31 +165,29 @@ namespace Jewellery.Application.Transactions.Commands
 
                 var result = await _loanRepository.LoanEntry_ManageAsync(model);
 
-                if (request.TypeId == "5")
+                if (request.TypeId == "5" && result != null && result.Count > 0)
                 {
-                    if (result != null)
+                    var loan = ((IEnumerable<dynamic>)result).First();
+
+                    var photoUrls = new List<string>();
+
+                    if (!string.IsNullOrWhiteSpace(loan.Photos))
                     {
-                        var loan = ((IEnumerable<dynamic>)result).First();
-
-                        var photoUrls = new List<string>();
-
-                        if (!string.IsNullOrWhiteSpace(loan.Photos))
+                        foreach (var photoName in loan.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries))
                         {
-                            foreach (var photoName in loan.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                            {
-                                var file = await _blobStorageService.GetFileUrl(
-                                    photoName.Trim(),
-                                    folderName,
-                                    0,
-                                    5,
-                                    0
-                                );
+                            var file = await _blobStorageService.GetFileUrl(
+                                photoName.Trim(),
+                                folderName,
+                                0,
+                                5,
+                                0
+                            );
 
-                                photoUrls.Add(file.Item2);
-                            }
+                            photoUrls.Add(file.Item2);
                         }
-((IDictionary<string, object>)loan)["PhotoUrls"] = photoUrls;
                     }
+((IDictionary<string, object>)loan)["PhotoUrls"] = photoUrls;
+
                 }
                 return new ResponseModel
                 {

@@ -76,7 +76,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "https://calm-field-0490bf510.7.azurestaticapps.net",                
-                "http://localhost:3000"
+                "http://localhost:3000",
+                "http://localhost:3001"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -125,6 +126,7 @@ builder.Services.AddScoped<IFAQMasterRepository, FAQMasterRepository>();
 //---------------------Reports-------------------------
 builder.Services.AddScoped<ILoanEntryReportRepository, LoanEntryReportsRepository>();
 builder.Services.AddScoped<IDashboard_GetDataRepository, Dashboard_GetDataRepository>();
+builder.Services.AddScoped<ILoanOutstandingCalculateRepository, LoanOutstandingCalculateRepository>();
 // ------------------END Reports DI ------------------
 
 // ------------------ Exception Filter ------------------

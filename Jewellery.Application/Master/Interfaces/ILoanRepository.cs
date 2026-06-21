@@ -6,6 +6,7 @@ namespace Jewellery.Application.Master.Interfaces
     public interface ILoanRepository
     {
         Task<dynamic> LoanEntry_ManageAsync(LoanEntryModel customer);
+        Task<dynamic> LoanTransactionsDetail_ManageAsync(LoanTransactionsDetailModel model);
     }
 }
 

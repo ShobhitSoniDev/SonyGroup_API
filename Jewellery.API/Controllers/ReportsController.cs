@@ -32,5 +32,11 @@ namespace Jewellery.API.Controllers.Transactions
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+        [HttpPost("LoanOutstandingCalculate")]
+        public async Task<IActionResult> LoanOutstandingCalculate([FromBody] LoanOutstandingCalculateCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
     }
 }
