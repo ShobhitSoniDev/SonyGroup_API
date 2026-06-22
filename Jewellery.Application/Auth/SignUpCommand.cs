@@ -18,7 +18,8 @@ namespace Jewellery.Application.Auth
         public string Password { get; set; } = "";
         public string OldPassword { get; set; } = "";
         public string MobileNo { get; set; } = "";
-        public int Type { get; set; }   
+        public int Type { get; set; }
+        public string shopCode { get; set; } = "JS0001";
     }
 
     // ✅ Handler
@@ -38,7 +39,7 @@ namespace Jewellery.Application.Auth
 
         public async Task<ResponseModel> Handle(SignUpCommand request, CancellationToken cancellationToken)
         {
-
+            request.shopCode = "JWL_" + request.shopCode;
             string hashedPassword = "";
             var hasher = new PasswordHasher<string>();
             var error = CommonInputValidator.Validate(value: request.UserName, numeric: false, minLength: 2, maxLength: 20);
@@ -61,7 +62,7 @@ namespace Jewellery.Application.Auth
                 error = CommonInputValidator.Validate(value: request.Password, numeric: false, minLength: 2, maxLength: 20);
                 if (error.Code == 0)
                     return error;
-                var LoginResponse = await _loginRepository.LoginReturnAsync(request.UserName);
+                var LoginResponse = await _loginRepository.LoginReturnAsync(request.UserName,request.shopCode);
                 var pass = LoginResponse.PasswordHash;
                 var result = hasher.VerifyHashedPassword(null, pass, request.OldPassword);
                 if (result != PasswordVerificationResult.Success)
@@ -77,7 +78,7 @@ namespace Jewellery.Application.Auth
             {
                 hashedPassword = hasher.HashPassword(null, request.Password);
             }
-            var SignUpResponse = await _SignUpRepository.SignUpReturnAsync(request.UserName, request.Email, hashedPassword, request.MobileNo, request.Type);
+            var SignUpResponse = await _SignUpRepository.SignUpReturnAsync(request.UserName, request.Email, hashedPassword, request.MobileNo, request.Type,request.shopCode);
 
             if (SignUpResponse != null)
             {

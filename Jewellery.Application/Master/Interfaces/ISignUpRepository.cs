@@ -5,7 +5,7 @@ namespace Jewellery.Application.Auth.Interfaces
 {
     public interface ISignUpRepository
     {
-        Task<dynamic> SignUpReturnAsync(string UserName, string Email, string Password, string MobileNo, int Type);
+        Task<dynamic> SignUpReturnAsync(string UserName, string Email, string Password, string MobileNo, int Type,string shopCode);
 
     }
 }

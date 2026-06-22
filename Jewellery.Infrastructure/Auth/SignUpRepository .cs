@@ -17,9 +17,12 @@ namespace Jewellery.Infrastructure.Master.Repositories
         }
 
         // 🔥 INSERT + RETURN INSERTED ROW (DYNAMIC)
-        public async Task<dynamic> SignUpReturnAsync(string UserName, string Email, string Password, string MobileNo, int Type)
+        public async Task<dynamic> SignUpReturnAsync(string UserName, string Email, string Password, string MobileNo, int Type,string shopCode)
         {
-            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            shopCode = "JWL_" + shopCode;
+            using var connection = new SqlConnection(_configuration.GetConnectionString(shopCode));
+
+            //using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
             var parameters = new DynamicParameters();
             parameters.Add("@UserName", UserName);
             parameters.Add("@Email", Email);

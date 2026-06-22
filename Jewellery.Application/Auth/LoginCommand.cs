@@ -15,6 +15,7 @@ namespace Jewellery.Application.Auth
     {
         public string username { get; set; }
         public string password { get; set; }
+        public string shopCode { get; set; } = "JS0000";
     }
 
     // ✅ Handler
@@ -41,8 +42,9 @@ namespace Jewellery.Application.Auth
                 //error = CommonInputValidator.Validate(value: request.password, numeric: false, minLength: 2, maxLength: 20);
                 //if (error.Code == 0)
                 //    return error;
-
-                var LoginResponse = await _loginRepository.LoginReturnAsync(request.username);
+                string SC= request.shopCode;
+                request.shopCode = "JWL_" + request.shopCode;
+                var LoginResponse = await _loginRepository.LoginReturnAsync(request.username, request.shopCode);
                 if (LoginResponse != null)
                 {
                     var hasher = new PasswordHasher<string>();
@@ -53,8 +55,9 @@ namespace Jewellery.Application.Auth
                         var UserId = LoginResponse.UserId.ToString();
                         var userName = LoginResponse.UserName.ToString();
                         var roleName = LoginResponse.RoleName.ToString();
-                        var token = _jwtService.GenerateToken(UserId, userName, roleName);
+                        var token = _jwtService.GenerateToken(UserId, userName, roleName, request.shopCode);
                         LoginResponse.token = token;
+                        LoginResponse.shopCode = SC;
                         return new ResponseModel
                         {
                             Code = 1,

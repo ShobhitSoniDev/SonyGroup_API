@@ -19,7 +19,9 @@ namespace Jewellery.Infrastructure.Master.Repositories
         }
         public async Task<dynamic> CategoryMaster_ManageAsync(int MetalId, string CategoryName, string createdBy, int TypeId, int CategoryId)
         {
-            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+
+            //using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
             var param = new DynamicParameters();
             param.Add("@UserId", _currentUser.UserId);
             param.Add("@MetalId", MetalId);

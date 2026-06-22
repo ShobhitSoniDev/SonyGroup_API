@@ -21,7 +21,8 @@ namespace Jewellery.Infrastructure.Master.Repositories
         // 🔥 INSERT + RETURN INSERTED ROW (DYNAMIC)
         public async Task<dynamic> GetMenuReturnAsync()
         {
-            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+            // using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
             var parameters = new DynamicParameters();
             parameters.Add("@UserId", _currentUser.UserId);
             // Stored Procedure MUST return SELECT

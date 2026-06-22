@@ -28,5 +28,8 @@ namespace Jewellery.Infrastructure.Services
         public string Role =>
             _httpContextAccessor.HttpContext?.User?
             .FindFirst(ClaimTypes.Role)?.Value;
+        public string shopCode =>
+    _httpContextAccessor.HttpContext?.User?
+    .FindFirst("ShopCode")?.Value;
     }
 }

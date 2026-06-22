@@ -36,17 +36,19 @@ public class JwtTokenService
 
     //    return new JwtSecurityTokenHandler().WriteToken(token);
     //}
-    public string GenerateToken(string userId, string userName, string role)
+    public string GenerateToken(string userId, string userName, string role, string shopCode)
     {
         var jwt = _config.GetSection("Jwt");
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, userId),
-            new Claim(ClaimTypes.Name, userName),
-            new Claim(ClaimTypes.Role, role),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+        new Claim(JwtRegisteredClaimNames.Sub, userId),
+        new Claim(ClaimTypes.Name, userName),
+        new Claim(ClaimTypes.Role, role),
+        new Claim("ShopCode", shopCode),
+
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+    };
 
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwt["Key"])

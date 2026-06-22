@@ -3,7 +3,6 @@ namespace Jewellery.Application.Auth.Interfaces
 {
     public interface ILoginRepository
     {
-        Task<dynamic> LoginReturnAsync(string username);
-
+        Task<dynamic> LoginReturnAsync(string username,string shopCode);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Master.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using System.Data;
@@ -17,9 +18,12 @@ namespace Jewellery.Infrastructure.Master.Repositories
         }
 
         // 🔥 INSERT + RETURN INSERTED ROW (DYNAMIC)
-        public async Task<dynamic> LoginReturnAsync(string username)
+        public async Task<dynamic> LoginReturnAsync(string username, string shopCode)
         {
-            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using var connection = new SqlConnection(
+                _configuration.GetConnectionString(shopCode));
+
+            //using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
             var parameters = new DynamicParameters();
             parameters.Add("@username", username);
             // Stored Procedure MUST return SELECT
