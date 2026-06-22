@@ -22,7 +22,8 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
 
         public async Task<dynamic> LoanEntry_ManageAsync(LoanEntryModel loan)
         {
-            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+            //using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
 
             var parameters = new DynamicParameters();
 
