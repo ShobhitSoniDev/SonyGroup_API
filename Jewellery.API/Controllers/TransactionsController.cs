@@ -38,5 +38,11 @@ namespace Jewellery.API.Controllers.Transactions
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+        [HttpPost("CustomerLedger_Manage")]
+        public async Task<IActionResult> CustomerLedger_Manage([FromBody] CustomerLedger_ManageCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
     }
 }

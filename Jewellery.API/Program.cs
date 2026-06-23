@@ -6,6 +6,7 @@ using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Services.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Infrastructure.Master.Repositories;
+using Jewellery.Infrastructure.Reports.Repositories;
 using Jewellery.Infrastructure.Services;
 using Jewellery.Infrastructure.Transactions.Repositories;
 using MediatR;
@@ -116,6 +117,7 @@ builder.Services.AddScoped<IGetLoan_MastersRepository, GetLoan_MastersRepository
 // Transactions
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<ILoanRepository, LoanRepository>();
+builder.Services.AddScoped<ITransactionsRepository, TransactionsRepository>();
 // ------------------END Repository DI ------------------
 
 // --------------------AI------------------------ -
@@ -127,6 +129,7 @@ builder.Services.AddScoped<IFAQMasterRepository, FAQMasterRepository>();
 builder.Services.AddScoped<ILoanEntryReportRepository, LoanEntryReportsRepository>();
 builder.Services.AddScoped<IDashboard_GetDataRepository, Dashboard_GetDataRepository>();
 builder.Services.AddScoped<ILoanOutstandingCalculateRepository, LoanOutstandingCalculateRepository>();
+builder.Services.AddScoped<IReportsRepository, ReportsRepository>();
 // ------------------END Reports DI ------------------
 
 // ------------------ Exception Filter ------------------
