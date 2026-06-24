@@ -1,13 +1,14 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure.Storage;
+using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
+using Azure.Storage.Sas;
+using Jewellery.Application.Common.Interfaces;
 using Jewellery.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Azure.Storage;
-using Azure.Storage.Sas;
 
 namespace Jewellery.Infrastructure.Services
 {
@@ -16,8 +17,8 @@ namespace Jewellery.Infrastructure.Services
         private readonly BlobContainerClient _containerClient;
         private readonly string _accountName;
         private readonly string _accountKey;
-
-        public BlobStorageService(IConfiguration config)
+        private readonly ICurrentUserService _currentUser;
+        public BlobStorageService(IConfiguration config, ICurrentUserService currentUser)
         {
             var connectionString = config["AzureBlob:ConnectionString"];
             var containerName = config["AzureBlob:ContainerName"];
@@ -28,37 +29,53 @@ namespace Jewellery.Infrastructure.Services
             // extract for SAS
             _accountName = config["AzureBlob:AccountName"];
             _accountKey = config["AzureBlob:AccountKey"];
+            _currentUser = currentUser;
         }
 
         // =========================
         // UPLOAD FILE
         // =========================
-        public async Task<(bool Success, string FileUrl, string FileName, string Message)> UploadFileAsync(IFormFile file,string FileName, string folderName, int expirySecond, int expiryMinutes, int expiryhour)
+        public async Task<(bool Success, string FileUrl, string FileName, string Message)>UploadFileAsync(
+    IFormFile? file, string FileName, string folderName, int expirySecond, int expiryMinutes, int expiryhour,
+    byte[]? fileBytes = null,string? contentType = null)
         {
             try
             {
-                if (file == null || file.Length == 0)
-                    return (false, null, null, "File is empty");
+                Stream stream;
 
-                // 🔥 CLEAN FOLDER PATH
-                folderName = folderName.Trim().Trim('/');
+                if (file != null)
+                {
+                    stream = file.OpenReadStream();
+                    contentType ??= file.ContentType;
+                }
+                else if (fileBytes != null)
+                {
+                    stream = new MemoryStream(fileBytes);
+                    contentType ??= "application/pdf";
+                }
+                else
+                {
+                    return (false, "", "", "No file provided.");
+                }
 
-                // 🔥 "folder/file.png"
+                folderName = _currentUser.shopCode + '/' + folderName.Trim().Trim('/');
+
                 string fileNameWithFolder = $"{folderName}/{FileName}";
 
                 var blobClient = _containerClient.GetBlobClient(fileNameWithFolder);
 
-                using var stream = file.OpenReadStream();
-                await blobClient.UploadAsync(stream, overwrite: true);
+                using (stream)
+                {
+                    await blobClient.UploadAsync(stream, overwrite: true);
+                }
 
-                // 🔥 secure URL generate
-                string fileUrl = GetSecureFileUrl(fileNameWithFolder, expirySecond, expiryMinutes, expiryhour);
+                string fileUrl = GetSecureFileUrl(fileNameWithFolder,expirySecond,expiryMinutes,expiryhour, _currentUser.shopCode);
 
                 return (true, fileUrl, FileName, "Uploaded successfully");
             }
             catch (Exception ex)
             {
-                return (false, null, null, ex.Message);
+                return (false, "", "", ex.Message);
             }
         }
         public string GetFileUrl(string filePath)
@@ -71,7 +88,7 @@ namespace Jewellery.Infrastructure.Services
         // =========================
         // GET PUBLIC URL (NOT USED IN PRIVATE SETUP)
         // =========================
-        public async Task<(bool Success, string FileUrl, string FileName, string Message)> GetFileUrl(string FileName,string folderName, int expirySecond, int expiryMinutes, int expiryhour)
+        public async Task<(bool Success, string FileUrl, string FileName, string Message)> GetFileUrl(string FileName, string folderName, int expirySecond, int expiryMinutes, int expiryhour)
         {
             if (string.IsNullOrWhiteSpace(FileName))
                 return (false, "", FileName, "Please send file");
@@ -85,8 +102,16 @@ namespace Jewellery.Infrastructure.Services
         // =========================
         // GET SECURE SAS URL (RECOMMENDED)
         // =========================
-        public string GetSecureFileUrl(string fileName, int expirySecond = 0, int expiryMinutes = 0, int expiryHour = 0)
+        public string GetSecureFileUrl(string fileName, int expirySecond = 0, int expiryMinutes = 0, int expiryHour = 0,string ShopCode="")
         {
+            if(string.IsNullOrWhiteSpace(ShopCode))
+            {
+                fileName = _currentUser.shopCode + '/' + fileName.Trim().Trim('/');
+            }
+            else
+            {
+                fileName = fileName.Trim().Trim('/');
+            }
             var blobClient = _containerClient.GetBlobClient(fileName);
 
             var credential = new StorageSharedKeyCredential(

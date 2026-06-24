@@ -44,5 +44,31 @@ namespace Jewellery.Infrastructure.Reports.Repositories
 
             return result;
         }
+        public async Task<dynamic> BillGenerateHistoryManageAsync(BillGenerateHistoryModel model)
+        {
+            using var connection = new SqlConnection(
+                _configuration.GetConnectionString(_currentUser.shopCode));
+
+            var parameters = new DynamicParameters();
+
+            parameters.Add("@TypeId", model.TypeId);
+            parameters.Add("@BillGenerateId", model.BillGenerateId);
+            parameters.Add("@CustomerCode", model.CustomerCode);
+            parameters.Add("@BillNo", model.BillNo);
+            parameters.Add("@FilePath", model.FilePath);
+            parameters.Add("@Description", model.Description);
+            parameters.Add("@LanguageType", model.LanguageType);
+            parameters.Add("@UserId", _currentUser.UserId);
+
+            using var result = await connection.QueryMultipleAsync(
+                "Jewellery.BillGenerateHistory_Manage",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return await result.ReadFirstAsync<dynamic>();
+
+
+        }
     }
 }

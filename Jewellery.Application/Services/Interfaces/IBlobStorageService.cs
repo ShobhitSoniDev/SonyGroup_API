@@ -9,7 +9,7 @@ namespace Jewellery.Application.Services.Interfaces
 {
     public interface IBlobStorageService
     {
-        Task<(bool Success, string FileUrl, string FileName, string Message)> UploadFileAsync(IFormFile file,string FileName,string FolderName, int expirySecond, int expiryMinutes, int expiryhour);
+        Task<(bool Success, string FileUrl, string FileName, string Message)> UploadFileAsync(IFormFile file,string FileName,string FolderName, int expirySecond, int expiryMinutes, int expiryhour, byte[]? fileBytes = null, string? contentType = null);
         Task<(bool Success, string FileUrl, string FileName, string Message)> GetFileUrl(string FileName, string FolderName, int expirySecond, int expiryMinutes, int expiryhour);
     }
 }

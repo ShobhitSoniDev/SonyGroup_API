@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Jewellery.API.Controllers.Transactions
 {
-    [Authorize]
+    //[Authorize]
     [ApiController]
     [ServiceFilter(typeof(ExceptionFilter))]
     [Route("api/[controller]")]
@@ -40,6 +40,12 @@ namespace Jewellery.API.Controllers.Transactions
         }
         [HttpPost("CustomerLedgerReport")]
         public async Task<IActionResult> CustomerLedgerReport([FromBody] GetCustomerLedgerReportCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("CustomerBillGenerate")]
+        public async Task<IActionResult> CustomerBillGenerate([FromBody] CustomerBillGenerateCommand command)
         {
             var result = await _mediator.Send(command);
             return Ok(result);
