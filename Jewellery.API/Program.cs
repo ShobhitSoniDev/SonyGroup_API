@@ -113,6 +113,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IGetLoan_MastersRepository, GetLoan_MastersRepository>();
+builder.Services.AddScoped<IMasterRepository, MasterRepository>();
 
 // Transactions
 builder.Services.AddScoped<IStockRepository, StockRepository>();

@@ -54,5 +54,29 @@ namespace Jewellery.API.Controllers.Master
         {
             return Ok(await Mediator.Send(new GetLoan_MastersQuery()));
         }
+        [HttpPost("RoleMaster_Manage")]
+        public async Task<IActionResult> RoleMaster_Manage([FromBody] RoleMaster_ManageCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("RoleMenuMapping_Manage")]
+        public async Task<IActionResult> RoleMenuMapping_Manage([FromBody] Role_Menu_Mapping_ManageCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("ChangePassword_Manage")]
+        public async Task<IActionResult> ChangePassword_Manage([FromBody] ChangePasswordCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("User_Manage")]
+        public async Task<IActionResult> User_Manage([FromBody] User_ManageCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
     }
 }
