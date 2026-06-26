@@ -11,7 +11,8 @@ public static class CommonInputValidator
         bool allowDecimal = true,
         int maxDecimalPlaces = 2,
         int minLength = 1,
-        int maxLength = 50
+        int maxLength = 50,
+    bool allowHindi = false
     )
     {
         // null / empty not allowed
@@ -112,13 +113,19 @@ public static class CommonInputValidator
             /* =========================
                ALPHANUMERIC MODE
             ==========================*/
-            var charRegex = new Regex(@"^[a-zA-Z0-9 ]+$");
+
+            Regex charRegex = allowHindi
+                ? new Regex(@"^[a-zA-Z0-9\u0900-\u097F ]+$")
+                : new Regex(@"^[a-zA-Z0-9 ]+$");
+
             if (!charRegex.IsMatch(value))
                 return new ResponseModel
                 {
                     Code = 0,
                     Data = null,
-                    Message = "Special characters are not allowed"
+                    Message = allowHindi
+                        ? "Only English, Hindi, numbers and spaces are allowed"
+                        : "Special characters are not allowed"
                 };
 
             if (value.Length < minLength)

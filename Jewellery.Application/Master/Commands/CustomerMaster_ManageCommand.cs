@@ -38,13 +38,13 @@ namespace Jewellery.Application.Master.Commands
             {
                 if (request.TypeId == 1 || request.TypeId == 2)
                 {
-                    var error = CommonInputValidator.Validate(value: request.CustomerName, numeric: false, minLength: 2, maxLength: 20);
+                    var error = CommonInputValidator.Validate(value: request.CustomerName, numeric: false, minLength: 2, maxLength: 20,allowHindi:true);
                     if (error.Code == 0)
                         return error;
                     error = CommonInputValidator.Validate(value: request.MobileNo.ToString(), numeric: true, minLength: 1, maxLength: 20);
                     if (error.Code == 0)
                         return error;
-                    error = CommonInputValidator.Validate(value: request.Address.ToString(), numeric: false, minLength: 1, maxLength: 20);
+                    error = CommonInputValidator.Validate(value: request.Address.ToString(), numeric: false, minLength: 1, maxLength: 20, allowHindi: true);
                     if (error.Code == 0)
                         return error;
                     
