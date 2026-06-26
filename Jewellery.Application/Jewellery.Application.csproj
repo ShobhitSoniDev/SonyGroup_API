@@ -23,7 +23,6 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="PuppeteerSharp" Version="25.1.2" />
     <PackageReference Include="Select.HtmlToPdf.NetCore" Version="26.3.0" />
-    <PackageReference Include="Select.Pdf" Version="26.3.0" />
   </ItemGroup>
 
   <ItemGroup>
