@@ -1,4 +1,6 @@
-﻿using SelectPdf;
+﻿using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
 using Jewellery.Application.Services.Interfaces;
@@ -6,12 +8,13 @@ using Jewellery.Domain.Entities;
 using MediatR;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static Jewellery.Domain.Entities.CustomerBillGenerateModel;
 
+// Fix: Unit ambiguous reference between QuestPDF.Infrastructure.Unit and MediatR.Unit
+using Unit = QuestPDF.Infrastructure.Unit;
 
 namespace Jewellery.Application.Master.Commands
 {
@@ -35,13 +38,15 @@ namespace Jewellery.Application.Master.Commands
         private readonly IReportsRepository _reportsRepository;
         private readonly IBlobStorageService _blobStorageService;
 
-        // ── No IConverter injection needed — SelectPdf is fully managed ───────
         public CustomerBillGenerateCommandHandler(
             IReportsRepository customerRepository,
             IBlobStorageService blobStorageService)
         {
             _reportsRepository = customerRepository;
             _blobStorageService = blobStorageService;
+
+            // QuestPDF Community license — free for commercial use
+            QuestPDF.Settings.License = LicenseType.Community;
         }
 
         public async Task<ResponseModel> Handle(
@@ -83,17 +88,19 @@ namespace Jewellery.Application.Master.Commands
                 var customer = CustomerInfo.Parse(customerRaw);
                 var bill = ParseBill(request.Description);
 
-                // ── Step 2 : Build HTML ───────────────────────────────────────
-                string htmlBill = request.Language switch
+                // ── Step 2 : Get labels based on language ─────────────────────
+                BillLabels labels = request.Language switch
                 {
-                    BillLanguage.English => GenerateHtmlBill_English(shop, customer, bill, billNo),
-                    BillLanguage.Hindi => GenerateHtmlBill_Hindi(shop, customer, bill, billNo),
-                    BillLanguage.HindiEnglishMix => GenerateHtmlBill_Mix(shop, customer, bill, billNo),
-                    _ => GenerateHtmlBill_Mix(shop, customer, bill, billNo)
+                    BillLanguage.English => GetLabels_English(),
+                    BillLanguage.Hindi => GetLabels_Hindi(),
+                    BillLanguage.HindiEnglishMix => GetLabels_Mix(),
+                    _ => GetLabels_Mix()
                 };
 
-                // ── Step 3 : HTML → PDF (pure managed, no native DLL) ─────────
-                byte[] pdfBytes = ConvertHtmlToPdf(htmlBill);
+                // ── Step 3 : Generate PDF using QuestPDF ──────────────────────
+                // Pure managed .NET — no native DLL, no browser, no binary download
+                // Works on: Local Windows, Azure App Service (Windows & Linux), Docker
+                byte[] pdfBytes = GeneratePdf(shop, customer, bill, billNo, labels);
 
                 // ── Step 4 : Upload to blob ───────────────────────────────────
                 var fileName = $"{Guid.NewGuid()}.pdf";
@@ -132,391 +139,332 @@ namespace Jewellery.Application.Master.Commands
         }
 
         // ═════════════════════════════════════════════════════════════════════
-        // PDF GENERATION — SelectPdf Community Edition
-        // Pure managed .NET — no libwkhtmltox, no Chrome, no native DLL.
-        // Works on Azure App Service (Windows & Linux), local, Docker.
-        // NuGet: Install-Package SelectPdf
+        // PDF GENERATION — QuestPDF Community Edition
+        // Pure managed .NET — no native DLL, no browser, no binary downloads.
+        // Works on: Local Windows, Azure App Service (Windows & Linux), Docker.
+        // NuGet: Install-Package QuestPDF
         // ═════════════════════════════════════════════════════════════════════
-        private static byte[] ConvertHtmlToPdf(string html)
-        {
-            // HtmlToPdf converter is thread-safe and stateless — create per call
-            var converter = new HtmlToPdf();
-
-            // Page settings
-            converter.Options.PdfPageSize = PdfPageSize.A4;
-            converter.Options.PdfPageOrientation = PdfPageOrientation.Portrait;
-            converter.Options.MarginTop = 10;
-            converter.Options.MarginBottom = 10;
-            converter.Options.MarginLeft = 10;
-            converter.Options.MarginRight = 10;
-
-            // Rendering quality
-            converter.Options.WebPageWidth = 720;   // match your HTML max-width
-            converter.Options.WebPageHeight = 0;     // 0 = auto height
-            converter.Options.RenderingEngine = RenderingEngine.WebKit;
-
-            // Convert HTML string → SelectPdf document → byte[]
-            PdfDocument doc = converter.ConvertHtmlString(html);
-
-            using var ms = new MemoryStream();
-            doc.Save(ms);
-            doc.Close();
-
-            return ms.ToArray();
-        }
-
-        // ── Language-specific HTML Wrappers ───────────────────────────────────
-        private static string GenerateHtmlBill_English(
-            ShopInfo shop, CustomerInfo customer, BillInfo bill, string billNo)
-        {
-            return GenerateHtmlBill(shop, customer, bill, billNo, new BillLabels
-            {
-                HtmlLang = "en",
-                SubTitle = "Fine Jewellery",
-                CustomerLabel = "Customer",
-                BillNoLabel = "Bill No.",
-                DateLabel = "Date",
-                NewSectionTitle = "New Jewellery",
-                OldSectionTitle = "Old Jewellery (Return)",
-                ColItem = "Item",
-                ColWeight = "Weight (gm)",
-                ColAmount = "Amount (Rs.)",
-                SummaryNew = "New Jewellery Total",
-                SummaryOld = "Old Jewellery (Deduction)",
-                SummaryNet = "Net Payable Amount",
-                FooterTagline = "Thank you for your trust - Visit us again",
-                PrintBtn = ""
-            });
-        }
-
-        private static string GenerateHtmlBill_Hindi(
-            ShopInfo shop, CustomerInfo customer, BillInfo bill, string billNo)
-        {
-            return GenerateHtmlBill(shop, customer, bill, billNo, new BillLabels
-            {
-                HtmlLang = "hi",
-                SubTitle = "सोना चाँदी आभूषण",
-                CustomerLabel = "ग्राहक",
-                BillNoLabel = "बिल नंबर",
-                DateLabel = "दिनांक",
-                NewSectionTitle = "नए आभूषण",
-                OldSectionTitle = "पुराने आभूषण (वापसी)",
-                ColItem = "वस्तु",
-                ColWeight = "वजन (ग्राम)",
-                ColAmount = "राशि (Rs.)",
-                SummaryNew = "नए आभूषण कुल",
-                SummaryOld = "पुराने आभूषण (कटौती)",
-                SummaryNet = "कुल देय राशि",
-                FooterTagline = "आपके विश्वास के लिए धन्यवाद - पुनः पधारें",
-                PrintBtn = ""
-            });
-        }
-
-        private static string GenerateHtmlBill_Mix(
-            ShopInfo shop, CustomerInfo customer, BillInfo bill, string billNo)
-        {
-            return GenerateHtmlBill(shop, customer, bill, billNo, new BillLabels
-            {
-                HtmlLang = "hi",
-                SubTitle = "Fine Jewellery | सोना चाँदी आभूषण",
-                CustomerLabel = "Customer / ग्राहक",
-                BillNoLabel = "Bill No. / बिल नं.",
-                DateLabel = "Date / दिनांक",
-                NewSectionTitle = "Naye Zewarat / नए आभूषण",
-                OldSectionTitle = "Purane Zewarat / पुराने आभूषण (Wapsi)",
-                ColItem = "Item / वस्तु",
-                ColWeight = "Wajan / वजन (gm)",
-                ColAmount = "Rashi / राशि (Rs.)",
-                SummaryNew = "Naye Zewarat Kul / नए आभूषण कुल",
-                SummaryOld = "Purane Zewarat (-) / पुराने आभूषण कटौती",
-                SummaryNet = "Net Dene Wali Rashi / कुल देय राशि",
-                FooterTagline = "Shukriya aapke vishwas ke liye | आपके विश्वास के लिए धन्यवाद",
-                PrintBtn = ""
-            });
-        }
-
-        // ── Core HTML Generator ───────────────────────────────────────────────
-        // NOTE: SelectPdf WebKit engine does not support CSS variables (var(--x))
-        //       or @import Google Fonts. All styles are written as plain values.
-        private static string GenerateHtmlBill(
+        private static byte[] GeneratePdf(
             ShopInfo shop, CustomerInfo customer, BillInfo bill, string billNo, BillLabels L)
         {
-            decimal newTotal = 0, oldTotal = 0;
-            foreach (var i in bill.NewItems) newTotal += i.Price;
-            foreach (var i in bill.OldItems) oldTotal += i.Price;
+            decimal newTotal = bill.NewItems.Sum(i => i.Price);
+            decimal oldTotal = bill.OldItems.Sum(i => i.Price);
             decimal netAmount = newTotal - oldTotal;
 
-            var sb = new StringBuilder();
-
-            sb.Append($@"<!DOCTYPE html>
-<html lang='{L.HtmlLang}'>
-<head>
-<meta charset='UTF-8'>
-<title>Bill - {shop.ShopName}</title>
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{
-    background: #E8DFC8;
-    font-family: Arial, 'Noto Sans Devanagari', sans-serif;
-    padding: 20px;
-    font-size: 13px;
-    color: #1A1208;
-  }}
-  .wrap {{
-    width: 100%;
-    max-width: 700px;
-    margin: 0 auto;
-    background: #FBF6EC;
-    border: 2px solid #C9A84C;
-  }}
-  .hdr {{
-    background: #1A1208;
-    color: #D4A017;
-    text-align: center;
-    padding: 22px 20px 16px;
-    border-bottom: 3px solid #C9A84C;
-  }}
-  .shop-name {{
-    font-size: 22px;
-    font-weight: bold;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-  }}
-  .ornament {{
-    color: #C9A84C;
-    font-size: 14px;
-    margin: 5px 0;
-    letter-spacing: 6px;
-  }}
-  .shop-sub {{
-    font-size: 11px;
-    color: #C9A84C;
-    letter-spacing: 1px;
-    margin-top: 4px;
-  }}
-  .meta {{
-    display: table;
-    width: 100%;
-    padding: 14px 24px;
-    background: #F5EDD8;
-    border-bottom: 1px solid #C9A84C;
-  }}
-  .meta-cell {{
-    display: table-cell;
-    vertical-align: top;
-    font-size: 12px;
-    color: #555;
-    line-height: 1.7;
-    width: 33%;
-  }}
-  .meta-cell.center {{ text-align: center; }}
-  .meta-cell.right  {{ text-align: right; }}
-  .meta-cell strong {{ color: #1A1208; font-size: 13px; display: block; }}
-  .lbl {{
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #B8860B;
-    font-weight: bold;
-    margin-bottom: 2px;
-  }}
-  .sec {{ padding: 16px 24px 4px; }}
-  .sec-title {{
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #B8860B;
-    border-bottom: 1px solid #C9A84C;
-    padding-bottom: 5px;
-    margin-bottom: 10px;
-  }}
-  .sec-title-old {{
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #8B2020;
-    border-bottom: 1px solid #E0A0A0;
-    padding-bottom: 5px;
-    margin-bottom: 10px;
-  }}
-  table {{ width: 100%; border-collapse: collapse; margin-bottom: 14px; }}
-  thead th {{
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #888;
-    font-weight: bold;
-    padding: 5px 7px;
-    text-align: left;
-    border-bottom: 1px solid #DDD;
-  }}
-  thead th.right {{ text-align: right; }}
-  tbody tr {{ border-bottom: 1px dashed #E5DCC5; }}
-  tbody td {{
-    padding: 8px 7px;
-    font-size: 12px;
-    color: #1A1208;
-    vertical-align: middle;
-  }}
-  tbody td.right {{ text-align: right; font-weight: bold; }}
-  tbody td.red   {{ text-align: right; font-weight: bold; color: #8B2020; }}
-  .iname {{ font-weight: bold; }}
-  .summ {{
-    margin: 4px 24px 18px;
-    background: #F5EDD8;
-    border: 1px solid #C9A84C;
-    padding: 12px 18px;
-  }}
-  .sr {{
-    display: table;
-    width: 100%;
-    padding: 4px 0;
-    font-size: 12px;
-    color: #555;
-    border-bottom: 1px dashed #DDD;
-  }}
-  .sr-label {{ display: table-cell; }}
-  .sr-value {{ display: table-cell; text-align: right; }}
-  .sr.net {{
-    font-size: 14px;
-    font-weight: bold;
-    color: #1A1208;
-    border-top: 2px solid #C9A84C;
-    border-bottom: none;
-    margin-top: 4px;
-    padding-top: 8px;
-  }}
-  .sr.net .sr-value {{ color: #B8860B; }}
-  .ded {{ color: #8B2020; }}
-  .ftr {{
-    background: #1A1208;
-    color: #C9A84C;
-    text-align: center;
-    padding: 14px 20px;
-    font-size: 11px;
-    letter-spacing: 1px;
-  }}
-  .ftr .tag {{ font-weight: bold; font-size: 12px; margin-bottom: 4px; }}
-  .no-print {{ margin-top: 18px; text-align: center; }}
-  .pbtn {{
-    background: #B8860B;
-    color: #1A1208;
-    border: none;
-    padding: 9px 28px;
-    font-size: 13px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    cursor: pointer;
-    text-transform: uppercase;
-  }}
-  @media print {{
-    body {{ background: white; padding: 0; }}
-    .no-print {{ display: none; }}
-    .wrap {{ box-shadow: none; border: 1px solid #999; max-width: 100%; }}
-  }}
-</style>
-</head>
-<body>
-<div class='wrap'>
-
-  <div class='hdr'>
-    <div class='shop-name'>{shop.ShopName}</div>
-    <div class='ornament'>* * *</div>
-    <div class='shop-sub'>{shop.Phone} | {L.SubTitle}</div>
-  </div>
-
-  <div class='meta'>
-    <div class='meta-cell'>
-      <div class='lbl'>{L.CustomerLabel}</div>
-      <strong>{customer.Name}</strong>
-      {customer.Phone}
-    </div>
-    <div class='meta-cell center'>
-      <div class='lbl'>{L.BillNoLabel}</div>
-      <strong>{billNo}</strong>
-    </div>
-    <div class='meta-cell right'>
-      <div class='lbl'>{L.DateLabel}</div>
-      <strong>{bill.Date:dd MMM yyyy}</strong>
-    </div>
-  </div>
-");
-
-            // ── New items section ─────────────────────────────────────────────
-            if (bill.NewItems.Count > 0)
+            return Document.Create(doc =>
             {
-                sb.Append($@"  <div class='sec'>
-    <div class='sec-title'>{L.NewSectionTitle}</div>
-    <table>
-      <thead>
-        <tr>
-          <th>{L.ColItem}</th>
-          <th>{L.ColWeight}</th>
-          <th class='right'>{L.ColAmount}</th>
-        </tr>
-      </thead>
-      <tbody>
-");
-                foreach (var item in bill.NewItems)
-                    sb.Append($"        <tr><td><div class='iname'>{item.Name}</div></td><td>{item.Weight:0.##} gm</td><td class='right'>Rs.{item.Price:N0}</td></tr>\n");
+                doc.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(10, Unit.Millimetre);
+                    page.DefaultTextStyle(t =>
+                        t.FontFamily("Arial").FontSize(11).FontColor("#1A1208"));
 
-                sb.Append("      </tbody>\n    </table>\n  </div>\n");
-            }
+                    page.Content().Column(col =>
+                    {
+                        // ── HEADER ────────────────────────────────────────────
+                        col.Item()
+                           .Background("#1A1208")
+                           .BorderBottom(3).BorderColor("#C9A84C")
+                           .Padding(18)
+                           .Column(hdr =>
+                           {
+                               hdr.Item().AlignCenter()
+                                  .Text(shop.ShopName)
+                                  .FontSize(20).Bold()
+                                  .FontColor("#D4A017")
+                                  .LetterSpacing(0.15f);
 
-            // ── Old items section ─────────────────────────────────────────────
-            if (bill.OldItems.Count > 0)
-            {
-                sb.Append($@"  <div class='sec'>
-    <div class='sec-title-old'>{L.OldSectionTitle}</div>
-    <table>
-      <thead style='background:#FFF5F5'>
-        <tr>
-          <th style='color:#8B2020'>{L.ColItem}</th>
-          <th style='color:#8B2020'>{L.ColWeight}</th>
-          <th class='right' style='color:#8B2020'>{L.ColAmount}</th>
-        </tr>
-      </thead>
-      <tbody>
-");
-                foreach (var item in bill.OldItems)
-                    sb.Append($"        <tr><td><div class='iname'>{item.Name}</div></td><td>{item.Weight:0.##} gm</td><td class='red'>Rs.{item.Price:N0}</td></tr>\n");
+                               hdr.Item().AlignCenter().PaddingVertical(4)
+                                  .Text("* * *")
+                                  .FontSize(12).FontColor("#C9A84C");
 
-                sb.Append("      </tbody>\n    </table>\n  </div>\n");
-            }
+                               hdr.Item().AlignCenter()
+                                  .Text($"{shop.Phone}  |  {L.SubTitle}")
+                                  .FontSize(10).FontColor("#C9A84C");
+                           });
 
-            // ── Summary ───────────────────────────────────────────────────────
-            sb.Append($@"  <div class='summ'>
-    <div class='sr'>
-      <span class='sr-label'>{L.SummaryNew}</span>
-      <span class='sr-value'>Rs.{newTotal:N0}</span>
-    </div>
-");
-            if (oldTotal > 0)
-                sb.Append($@"    <div class='sr'>
-      <span class='sr-label'>{L.SummaryOld}</span>
-      <span class='sr-value ded'>- Rs.{oldTotal:N0}</span>
-    </div>
-");
+                        // ── META ROW (Customer | Bill No | Date) ──────────────
+                        col.Item()
+                           .Background("#F5EDD8")
+                           .BorderBottom(1).BorderColor("#C9A84C")
+                           .Padding(12)
+                           .Row(row =>
+                           {
+                               // Customer
+                               row.RelativeItem().Column(c =>
+                               {
+                                   c.Item().Text(L.CustomerLabel)
+                                    .FontSize(9).FontColor("#B8860B").Bold();
+                                   c.Item().Text(customer.Name)
+                                    .Bold().FontSize(13);
+                                   c.Item().Text(customer.Phone)
+                                    .FontSize(10).FontColor("#555555");
+                               });
 
-            sb.Append($@"    <div class='sr net'>
-      <span class='sr-label'>{L.SummaryNet}</span>
-      <span class='sr-value'>Rs.{netAmount:N0}</span>
-    </div>
-  </div>
+                               // Bill No
+                               row.RelativeItem().AlignCenter().Column(c =>
+                               {
+                                   c.Item().AlignCenter().Text(L.BillNoLabel)
+                                    .FontSize(9).FontColor("#B8860B").Bold();
+                                   c.Item().AlignCenter().Text(billNo)
+                                    .Bold().FontSize(13);
+                               });
 
-  <div class='ftr'>
-    <div class='tag'>{L.FooterTagline}</div>
-    <div>{shop.ShopName} | {shop.Phone}</div>
-  </div>
+                               // Date
+                               row.RelativeItem().AlignRight().Column(c =>
+                               {
+                                   c.Item().AlignRight().Text(L.DateLabel)
+                                    .FontSize(9).FontColor("#B8860B").Bold();
+                                   c.Item().AlignRight()
+                                    .Text(bill.Date.ToString("dd MMM yyyy"))
+                                    .Bold().FontSize(13);
+                               });
+                           });
 
-</div>
+                        // ── NEW ITEMS SECTION ─────────────────────────────────
+                        if (bill.NewItems.Count > 0)
+                        {
+                            col.Item().Padding(12).Column(sec =>
+                            {
+                                // Section title
+                                sec.Item()
+                                   .BorderBottom(1).BorderColor("#C9A84C")
+                                   .PaddingBottom(5)
+                                   .Text(L.NewSectionTitle)
+                                   .FontSize(10).Bold().FontColor("#B8860B");
 
-</body></html>");
+                                // Table
+                                sec.Item().PaddingTop(6).Table(table =>
+                                {
+                                    table.ColumnsDefinition(c =>
+                                    {
+                                        c.RelativeColumn(4); // Item name
+                                        c.RelativeColumn(2); // Weight
+                                        c.RelativeColumn(2); // Amount
+                                    });
 
-            return sb.ToString();
+                                    // Header row
+                                    table.Header(h =>
+                                    {
+                                        h.Cell().BorderBottom(1).BorderColor("#DDDDDD")
+                                         .PaddingVertical(5)
+                                         .Text(L.ColItem)
+                                         .FontSize(9).FontColor("#888888").Bold();
+
+                                        h.Cell().BorderBottom(1).BorderColor("#DDDDDD")
+                                         .PaddingVertical(5)
+                                         .Text(L.ColWeight)
+                                         .FontSize(9).FontColor("#888888").Bold();
+
+                                        h.Cell().BorderBottom(1).BorderColor("#DDDDDD")
+                                         .AlignRight().PaddingVertical(5)
+                                         .Text(L.ColAmount)
+                                         .FontSize(9).FontColor("#888888").Bold();
+                                    });
+
+                                    // Data rows
+                                    foreach (var item in bill.NewItems)
+                                    {
+                                        table.Cell()
+                                             .BorderBottom(1).BorderColor("#E5DCC5")
+                                             .PaddingVertical(7)
+                                             .Text(item.Name).Bold();
+
+                                        table.Cell()
+                                             .BorderBottom(1).BorderColor("#E5DCC5")
+                                             .PaddingVertical(7)
+                                             .Text($"{item.Weight:0.##} gm");
+
+                                        table.Cell()
+                                             .BorderBottom(1).BorderColor("#E5DCC5")
+                                             .AlignRight().PaddingVertical(7)
+                                             .Text($"Rs.{item.Price:N0}").Bold();
+                                    }
+                                });
+                            });
+                        }
+
+                        // ── OLD ITEMS SECTION ─────────────────────────────────
+                        if (bill.OldItems.Count > 0)
+                        {
+                            col.Item().Padding(12).Column(sec =>
+                            {
+                                // Section title
+                                sec.Item()
+                                   .BorderBottom(1).BorderColor("#E0A0A0")
+                                   .PaddingBottom(5)
+                                   .Text(L.OldSectionTitle)
+                                   .FontSize(10).Bold().FontColor("#8B2020");
+
+                                // Table
+                                sec.Item().PaddingTop(6).Table(table =>
+                                {
+                                    table.ColumnsDefinition(c =>
+                                    {
+                                        c.RelativeColumn(4);
+                                        c.RelativeColumn(2);
+                                        c.RelativeColumn(2);
+                                    });
+
+                                    table.Header(h =>
+                                    {
+                                        h.Cell().BorderBottom(1).BorderColor("#E0A0A0")
+                                         .PaddingVertical(5)
+                                         .Text(L.ColItem)
+                                         .FontSize(9).FontColor("#8B2020").Bold();
+
+                                        h.Cell().BorderBottom(1).BorderColor("#E0A0A0")
+                                         .PaddingVertical(5)
+                                         .Text(L.ColWeight)
+                                         .FontSize(9).FontColor("#8B2020").Bold();
+
+                                        h.Cell().BorderBottom(1).BorderColor("#E0A0A0")
+                                         .AlignRight().PaddingVertical(5)
+                                         .Text(L.ColAmount)
+                                         .FontSize(9).FontColor("#8B2020").Bold();
+                                    });
+
+                                    foreach (var item in bill.OldItems)
+                                    {
+                                        table.Cell()
+                                             .BorderBottom(1).BorderColor("#F5CCCC")
+                                             .PaddingVertical(7)
+                                             .Text(item.Name).Bold();
+
+                                        table.Cell()
+                                             .BorderBottom(1).BorderColor("#F5CCCC")
+                                             .PaddingVertical(7)
+                                             .Text($"{item.Weight:0.##} gm");
+
+                                        table.Cell()
+                                             .BorderBottom(1).BorderColor("#F5CCCC")
+                                             .AlignRight().PaddingVertical(7)
+                                             .Text($"Rs.{item.Price:N0}")
+                                             .Bold().FontColor("#8B2020");
+                                    }
+                                });
+                            });
+                        }
+
+                        // ── SUMMARY BOX ───────────────────────────────────────
+                        col.Item()
+                           .PaddingHorizontal(12).PaddingVertical(4)
+                           .Border(1).BorderColor("#C9A84C")
+                           .Background("#F5EDD8")
+                           .Padding(14)
+                           .Column(summ =>
+                           {
+                               // New total row
+                               summ.Item()
+                                   .BorderBottom(1).BorderColor("#DDDDDD")
+                                   .PaddingVertical(5)
+                                   .Row(r =>
+                                   {
+                                       r.RelativeItem().Text(L.SummaryNew).FontSize(12);
+                                       r.RelativeItem().AlignRight()
+                                        .Text($"Rs.{newTotal:N0}").FontSize(12);
+                                   });
+
+                               // Old deduction row (only if old items exist)
+                               if (oldTotal > 0)
+                               {
+                                   summ.Item()
+                                       .BorderBottom(1).BorderColor("#DDDDDD")
+                                       .PaddingVertical(5)
+                                       .Row(r =>
+                                       {
+                                           r.RelativeItem().Text(L.SummaryOld).FontSize(12);
+                                           r.RelativeItem().AlignRight()
+                                            .Text($"- Rs.{oldTotal:N0}")
+                                            .FontSize(12).FontColor("#8B2020");
+                                       });
+                               }
+
+                               // Net payable row
+                               summ.Item()
+                                   .BorderTop(2).BorderColor("#C9A84C")
+                                   .PaddingTop(8)
+                                   .Row(r =>
+                                   {
+                                       r.RelativeItem()
+                                        .Text(L.SummaryNet).Bold().FontSize(14);
+                                       r.RelativeItem().AlignRight()
+                                        .Text($"Rs.{netAmount:N0}")
+                                        .Bold().FontSize(14).FontColor("#B8860B");
+                                   });
+                           });
+
+                        // ── FOOTER ────────────────────────────────────────────
+                        col.Item()
+                           .Background("#1A1208")
+                           .Padding(14)
+                           .Column(ftr =>
+                           {
+                               ftr.Item().AlignCenter()
+                                  .Text(L.FooterTagline)
+                                  .Bold().FontSize(12).FontColor("#C9A84C");
+
+                               ftr.Item().AlignCenter().PaddingTop(4)
+                                  .Text($"{shop.ShopName}  |  {shop.Phone}")
+                                  .FontSize(10).FontColor("#C9A84C");
+                           });
+                    });
+                });
+            }).GeneratePdf();
         }
+
+        // ── Label Sets ────────────────────────────────────────────────────────
+        private static BillLabels GetLabels_English() => new BillLabels
+        {
+            SubTitle = "Fine Jewellery",
+            CustomerLabel = "Customer",
+            BillNoLabel = "Bill No.",
+            DateLabel = "Date",
+            NewSectionTitle = "New Jewellery",
+            OldSectionTitle = "Old Jewellery (Return)",
+            ColItem = "Item",
+            ColWeight = "Weight (gm)",
+            ColAmount = "Amount (Rs.)",
+            SummaryNew = "New Jewellery Total",
+            SummaryOld = "Old Jewellery (Deduction)",
+            SummaryNet = "Net Payable Amount",
+            FooterTagline = "Thank you for your trust - Visit us again"
+        };
+
+        private static BillLabels GetLabels_Hindi() => new BillLabels
+        {
+            SubTitle = "सोना चाँदी आभूषण",
+            CustomerLabel = "ग्राहक",
+            BillNoLabel = "बिल नंबर",
+            DateLabel = "दिनांक",
+            NewSectionTitle = "नए आभूषण",
+            OldSectionTitle = "पुराने आभूषण (वापसी)",
+            ColItem = "वस्तु",
+            ColWeight = "वजन (ग्राम)",
+            ColAmount = "राशि (Rs.)",
+            SummaryNew = "नए आभूषण कुल",
+            SummaryOld = "पुराने आभूषण (कटौती)",
+            SummaryNet = "कुल देय राशि",
+            FooterTagline = "आपके विश्वास के लिए धन्यवाद - पुनः पधारें"
+        };
+
+        private static BillLabels GetLabels_Mix() => new BillLabels
+        {
+            SubTitle = "Fine Jewellery | सोना चाँदी आभूषण",
+            CustomerLabel = "Customer / ग्राहक",
+            BillNoLabel = "Bill No. / बिल नं.",
+            DateLabel = "Date / दिनांक",
+            NewSectionTitle = "Naye Zewarat / नए आभूषण",
+            OldSectionTitle = "Purane Zewarat / पुराने आभूषण (Wapsi)",
+            ColItem = "Item / वस्तु",
+            ColWeight = "Wajan / वजन (gm)",
+            ColAmount = "Rashi / राशि (Rs.)",
+            SummaryNew = "Naye Zewarat Kul / नए आभूषण कुल",
+            SummaryOld = "Purane Zewarat (-) / पुराने आभूषण कटौती",
+            SummaryNet = "Net Dene Wali Rashi / कुल देय राशि",
+            FooterTagline = "Shukriya aapke vishwas ke liye | आपके विश्वास के लिए धन्यवाद"
+        };
 
         // ── ParseBill ─────────────────────────────────────────────────────────
         private static BillInfo ParseBill(string description)
@@ -595,5 +543,24 @@ namespace Jewellery.Application.Master.Commands
 
             return item;
         }
+    }
+
+    // ── BillLabels DTO ────────────────────────────────────────────────────────
+    // (HtmlLang and PrintBtn removed — not needed for QuestPDF)
+    internal class BillLabels
+    {
+        public string SubTitle { get; set; }
+        public string CustomerLabel { get; set; }
+        public string BillNoLabel { get; set; }
+        public string DateLabel { get; set; }
+        public string NewSectionTitle { get; set; }
+        public string OldSectionTitle { get; set; }
+        public string ColItem { get; set; }
+        public string ColWeight { get; set; }
+        public string ColAmount { get; set; }
+        public string SummaryNew { get; set; }
+        public string SummaryOld { get; set; }
+        public string SummaryNet { get; set; }
+        public string FooterTagline { get; set; }
     }
 }
