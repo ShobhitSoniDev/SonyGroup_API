@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Jewellery.Application.Auth.Interfaces;
+using Jewellery.Application.Common.Security;
+using Jewellery.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Identity;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Jewellery.Application.Auth.Interfaces;
-using Microsoft.AspNetCore.Identity;
-using Jewellery.Domain.Entities;
-using MediatR;
 
 namespace Jewellery.Application.Auth
 {
@@ -29,12 +30,13 @@ namespace Jewellery.Application.Auth
         private readonly ILoginRepository _loginRepository;
         private readonly ISignUpRepository _SignUpRepository;
         private readonly JwtTokenService _jwtService;
-
-        public SignUpCommandHandler(ILoginRepository loginRepository, ISignUpRepository SignUpRepository, JwtTokenService jwtService)
+        private readonly PasswordSecurityHelper _passSecurity;
+        public SignUpCommandHandler(ILoginRepository loginRepository, ISignUpRepository SignUpRepository, JwtTokenService jwtService, PasswordSecurityHelper passSecurity)
         {
             _loginRepository = loginRepository;
             _SignUpRepository = SignUpRepository;
             _jwtService = jwtService;
+            _passSecurity = passSecurity;
         }
 
         public async Task<ResponseModel> Handle(SignUpCommand request, CancellationToken cancellationToken)
@@ -62,10 +64,10 @@ namespace Jewellery.Application.Auth
                 error = CommonInputValidator.Validate(value: request.Password, numeric: false, minLength: 2, maxLength: 20);
                 if (error.Code == 0)
                     return error;
-                var LoginResponse = await _loginRepository.LoginReturnAsync(request.UserName,request.shopCode);
+                var LoginResponse = await _loginRepository.LoginReturnAsync(request.UserName, request.shopCode);
                 var pass = LoginResponse.PasswordHash;
-                var result = hasher.VerifyHashedPassword(null, pass, request.OldPassword);
-                if (result != PasswordVerificationResult.Success)
+                var result = _passSecurity.Encrypt(request.OldPassword);
+                if (result != pass)
                 {
                     return new ResponseModel
                     {
@@ -76,9 +78,9 @@ namespace Jewellery.Application.Auth
             }
             if (request.Type == 1 || request.Type == 2)
             {
-                hashedPassword = hasher.HashPassword(null, request.Password);
+                hashedPassword = _passSecurity.Encrypt(request.Password);
             }
-            var SignUpResponse = await _SignUpRepository.SignUpReturnAsync(request.UserName, request.Email, hashedPassword, request.MobileNo, request.Type,request.shopCode);
+            var SignUpResponse = await _SignUpRepository.SignUpReturnAsync(request.UserName, request.Email, hashedPassword, request.MobileNo, request.Type, request.shopCode);
 
             if (SignUpResponse != null)
             {

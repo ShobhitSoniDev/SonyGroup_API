@@ -1,9 +1,11 @@
-﻿using Jewellery.Application.Master.Interfaces;
+﻿using Jewellery.Application.Common.Security;
+using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
 using Jewellery.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,10 +27,11 @@ namespace Jewellery.Application.Master.Commands
         : IRequestHandler<User_ManageCommand, ResponseModel>
     {
         private readonly IMasterRepository _masterRepository;
-
-        public User_ManageCommandHandler(IMasterRepository masterRepository)
+        private readonly PasswordSecurityHelper _passSecurity;
+        public User_ManageCommandHandler(IMasterRepository masterRepository, PasswordSecurityHelper passSecurity)
         {
             _masterRepository = masterRepository;
+            _passSecurity = passSecurity;
         }
 
         public async Task<ResponseModel> Handle(
@@ -38,16 +41,10 @@ namespace Jewellery.Application.Master.Commands
             try
             {
                 string passwordHash = "";
-
-                // Insert User
-                if (request.TypeId == 2)
+                // Insert Update User
+                if (request.TypeId == 2 || request.TypeId == 6)
                 {
-                    var hasher = new PasswordHasher<string>();
-
-                    passwordHash =
-                        hasher.HashPassword(
-                            null,
-                            request.Password);
+                    passwordHash = _passSecurity.Encrypt(request.Password);
                 }
 
                 var model = new UserModel
@@ -62,8 +59,14 @@ namespace Jewellery.Application.Master.Commands
                     TypeId = request.TypeId
                 };
 
-                var result =
-                    await _masterRepository.User_ManageAsync(model);
+                var result = await _masterRepository.User_ManageAsync(model);
+                if (result != null && (request.TypeId == 1 || request.TypeId == 5))
+                {
+                    foreach (var item in result)
+                    {
+                        item.Password = _passSecurity.Decrypt(item.PasswordHash);
+                    }
+                }
 
                 return new ResponseModel
                 {

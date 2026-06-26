@@ -1,6 +1,7 @@
 using Jewellery.API.Filters;
 using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Common.Interfaces;
+using Jewellery.Application.Common.Security;
 using Jewellery.Application.Master.Commands;
 using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Services.Interfaces;
@@ -22,7 +23,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ------------------ JWT Token Service ------------------
 builder.Services.AddScoped<JwtTokenService>();
-
+builder.Services.AddScoped<PasswordSecurityHelper>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 

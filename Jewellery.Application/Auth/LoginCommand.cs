@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Jewellery.Application.Auth.Interfaces;
+using Jewellery.Application.Common.Security;
+using Jewellery.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Identity;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Jewellery.Application.Auth.Interfaces;
-using Microsoft.AspNetCore.Identity;
-using Jewellery.Domain.Entities;
-using MediatR;
 
 namespace Jewellery.Application.Auth
 {
@@ -24,11 +25,12 @@ namespace Jewellery.Application.Auth
     {
         private readonly ILoginRepository _loginRepository;
         private readonly JwtTokenService _jwtService;
-
-        public LoginCommandHandler(ILoginRepository loginRepository, JwtTokenService jwtService)
+        private readonly PasswordSecurityHelper _passSecurity;
+        public LoginCommandHandler(ILoginRepository loginRepository, JwtTokenService jwtService, PasswordSecurityHelper passSecurity)
         {
             _loginRepository = loginRepository;
             _jwtService = jwtService;
+            _passSecurity = passSecurity;
         }
 
         public async Task<ResponseModel> Handle(LoginCommand request, CancellationToken cancellationToken)
@@ -47,10 +49,10 @@ namespace Jewellery.Application.Auth
                 var LoginResponse = await _loginRepository.LoginReturnAsync(request.username, request.shopCode);
                 if (LoginResponse != null)
                 {
-                    var hasher = new PasswordHasher<string>();
                     var pass = LoginResponse.PasswordHash;
-                    var result = hasher.VerifyHashedPassword(null, pass, request.password);
-                    if (result == PasswordVerificationResult.Success)
+                    string  EncryptedPassword = _passSecurity.Encrypt(request.password);
+
+                    if (pass == EncryptedPassword)
                     {
                         var UserId = LoginResponse.UserId.ToString();
                         var userName = LoginResponse.UserName.ToString();

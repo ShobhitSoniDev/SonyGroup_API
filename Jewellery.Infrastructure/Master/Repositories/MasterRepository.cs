@@ -95,10 +95,9 @@ namespace Jewellery.Infrastructure.Master.Repositories
             param.Add("@UserId", _currentUser.UserId);
             param.Add("@TypeId", model.TypeId);
 
-            return await connection.QueryAsync(
-                "Jewellery.User_Manage",
-                param,
-                commandType: CommandType.StoredProcedure);
+            using var result = await connection.QueryMultipleAsync("Jewellery.User_Manage", param,commandType: CommandType.StoredProcedure);
+
+            return await result.ReadAsync<dynamic>();
         }
     }
 }
