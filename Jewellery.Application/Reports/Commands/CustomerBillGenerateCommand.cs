@@ -1,4 +1,5 @@
-﻿using Jewellery.Application.Master.Interfaces;
+﻿using SelectPdf;
+using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
 using Jewellery.Application.Services.Interfaces;
 using Jewellery.Domain.Entities;
@@ -10,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static Jewellery.Domain.Entities.CustomerBillGenerateModel;
+
 
 namespace Jewellery.Application.Master.Commands
 {
@@ -33,6 +35,7 @@ namespace Jewellery.Application.Master.Commands
         private readonly IReportsRepository _reportsRepository;
         private readonly IBlobStorageService _blobStorageService;
 
+        // ── No IConverter injection needed — SelectPdf is fully managed ───────
         public CustomerBillGenerateCommandHandler(
             IReportsRepository customerRepository,
             IBlobStorageService blobStorageService)
@@ -47,6 +50,7 @@ namespace Jewellery.Application.Master.Commands
         {
             try
             {
+                // ── Step 1 : Fetch bill header data from DB ───────────────────
                 var billGenerateModel = new BillGenerateHistoryModel
                 {
                     TypeId = 1,
@@ -79,6 +83,7 @@ namespace Jewellery.Application.Master.Commands
                 var customer = CustomerInfo.Parse(customerRaw);
                 var bill = ParseBill(request.Description);
 
+                // ── Step 2 : Build HTML ───────────────────────────────────────
                 string htmlBill = request.Language switch
                 {
                     BillLanguage.English => GenerateHtmlBill_English(shop, customer, bill, billNo),
@@ -87,7 +92,10 @@ namespace Jewellery.Application.Master.Commands
                     _ => GenerateHtmlBill_Mix(shop, customer, bill, billNo)
                 };
 
-                var pdfBytes = await GeneratePdfAsync(htmlBill);
+                // ── Step 3 : HTML → PDF (pure managed, no native DLL) ─────────
+                byte[] pdfBytes = ConvertHtmlToPdf(htmlBill);
+
+                // ── Step 4 : Upload to blob ───────────────────────────────────
                 var fileName = $"{Guid.NewGuid()}.pdf";
 
                 var uploadResult = await _blobStorageService.UploadFileAsync(
@@ -96,6 +104,7 @@ namespace Jewellery.Application.Master.Commands
                 if (!uploadResult.Success)
                     return new ResponseModel { Code = 0, Message = "Upload failed.", Data = null };
 
+                // ── Step 5 : Save bill history ────────────────────────────────
                 var billGenerateSave = new BillGenerateHistoryModel
                 {
                     TypeId = 2,
@@ -122,22 +131,38 @@ namespace Jewellery.Application.Master.Commands
             }
         }
 
-        // ── PDF Generation ────────────────────────────────────────────────────
-        private static async Task<byte[]> GeneratePdfAsync(string htmlBill)
+        // ═════════════════════════════════════════════════════════════════════
+        // PDF GENERATION — SelectPdf Community Edition
+        // Pure managed .NET — no libwkhtmltox, no Chrome, no native DLL.
+        // Works on Azure App Service (Windows & Linux), local, Docker.
+        // NuGet: Install-Package SelectPdf
+        // ═════════════════════════════════════════════════════════════════════
+        private static byte[] ConvertHtmlToPdf(string html)
         {
-            await new PuppeteerSharp.BrowserFetcher().DownloadAsync();
+            // HtmlToPdf converter is thread-safe and stateless — create per call
+            var converter = new HtmlToPdf();
 
-            await using var browser = await PuppeteerSharp.Puppeteer.LaunchAsync(
-                new PuppeteerSharp.LaunchOptions { Headless = true });
+            // Page settings
+            converter.Options.PdfPageSize = PdfPageSize.A4;
+            converter.Options.PdfPageOrientation = PdfPageOrientation.Portrait;
+            converter.Options.MarginTop = 10;
+            converter.Options.MarginBottom = 10;
+            converter.Options.MarginLeft = 10;
+            converter.Options.MarginRight = 10;
 
-            await using var page = await browser.NewPageAsync();
-            await page.SetContentAsync(htmlBill);
+            // Rendering quality
+            converter.Options.WebPageWidth = 720;   // match your HTML max-width
+            converter.Options.WebPageHeight = 0;     // 0 = auto height
+            converter.Options.RenderingEngine = RenderingEngine.WebKit;
 
-            return await page.PdfDataAsync(new PuppeteerSharp.PdfOptions
-            {
-                Format = PuppeteerSharp.Media.PaperFormat.A4,
-                PrintBackground = true
-            });
+            // Convert HTML string → SelectPdf document → byte[]
+            PdfDocument doc = converter.ConvertHtmlString(html);
+
+            using var ms = new MemoryStream();
+            doc.Save(ms);
+            doc.Close();
+
+            return ms.ToArray();
         }
 
         // ── Language-specific HTML Wrappers ───────────────────────────────────
@@ -151,16 +176,16 @@ namespace Jewellery.Application.Master.Commands
                 CustomerLabel = "Customer",
                 BillNoLabel = "Bill No.",
                 DateLabel = "Date",
-                NewSectionTitle = "✦ New Jewellery",
-                OldSectionTitle = "⟳ Old Jewellery (Return)",
+                NewSectionTitle = "New Jewellery",
+                OldSectionTitle = "Old Jewellery (Return)",
                 ColItem = "Item",
                 ColWeight = "Weight (gm)",
-                ColAmount = "Amount (₹)",
+                ColAmount = "Amount (Rs.)",
                 SummaryNew = "New Jewellery Total",
                 SummaryOld = "Old Jewellery (Deduction)",
                 SummaryNet = "Net Payable Amount",
-                FooterTagline = "Thank you for your trust — Visit us again",
-                PrintBtn = "🖨️ Print Bill"
+                FooterTagline = "Thank you for your trust - Visit us again",
+                PrintBtn = ""
             });
         }
 
@@ -174,16 +199,16 @@ namespace Jewellery.Application.Master.Commands
                 CustomerLabel = "ग्राहक",
                 BillNoLabel = "बिल नंबर",
                 DateLabel = "दिनांक",
-                NewSectionTitle = "✦ नए आभूषण",
-                OldSectionTitle = "⟳ पुराने आभूषण (वापसी)",
+                NewSectionTitle = "नए आभूषण",
+                OldSectionTitle = "पुराने आभूषण (वापसी)",
                 ColItem = "वस्तु",
                 ColWeight = "वजन (ग्राम)",
-                ColAmount = "राशि (₹)",
+                ColAmount = "राशि (Rs.)",
                 SummaryNew = "नए आभूषण कुल",
                 SummaryOld = "पुराने आभूषण (कटौती)",
                 SummaryNet = "कुल देय राशि",
-                FooterTagline = "आपके विश्वास के लिए धन्यवाद — पुनः पधारें",
-                PrintBtn = "🖨️ बिल प्रिंट करें"
+                FooterTagline = "आपके विश्वास के लिए धन्यवाद - पुनः पधारें",
+                PrintBtn = ""
             });
         }
 
@@ -197,20 +222,22 @@ namespace Jewellery.Application.Master.Commands
                 CustomerLabel = "Customer / ग्राहक",
                 BillNoLabel = "Bill No. / बिल नं.",
                 DateLabel = "Date / दिनांक",
-                NewSectionTitle = "✦ Naye Zewarat / नए आभूषण",
-                OldSectionTitle = "⟳ Purane Zewarat / पुराने आभूषण (Wapsi)",
+                NewSectionTitle = "Naye Zewarat / नए आभूषण",
+                OldSectionTitle = "Purane Zewarat / पुराने आभूषण (Wapsi)",
                 ColItem = "Item / वस्तु",
                 ColWeight = "Wajan / वजन (gm)",
-                ColAmount = "Rashi / राशि (₹)",
+                ColAmount = "Rashi / राशि (Rs.)",
                 SummaryNew = "Naye Zewarat Kul / नए आभूषण कुल",
-                SummaryOld = "Purane Zewarat (−) / पुराने आभूषण कटौती",
+                SummaryOld = "Purane Zewarat (-) / पुराने आभूषण कटौती",
                 SummaryNet = "Net Dene Wali Rashi / कुल देय राशि",
                 FooterTagline = "Shukriya aapke vishwas ke liye | आपके विश्वास के लिए धन्यवाद",
-                PrintBtn = "🖨️ Bill Print Karein / बिल प्रिंट करें"
+                PrintBtn = ""
             });
         }
 
         // ── Core HTML Generator ───────────────────────────────────────────────
+        // NOTE: SelectPdf WebKit engine does not support CSS variables (var(--x))
+        //       or @import Google Fonts. All styles are written as plain values.
         private static string GenerateHtmlBill(
             ShopInfo shop, CustomerInfo customer, BillInfo bill, string billNo, BillLabels L)
         {
@@ -225,121 +252,267 @@ namespace Jewellery.Application.Master.Commands
 <html lang='{L.HtmlLang}'>
 <head>
 <meta charset='UTF-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0'>
 <title>Bill - {shop.ShopName}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&family=Noto+Sans+Devanagari:wght@400;500;700&display=swap');
-  *{{margin:0;padding:0;box-sizing:border-box}}
-  :root{{--gold:#B8860B;--gold2:#D4A017;--dark:#1A1208;--cream:#FBF6EC;--light:#F5EDD8;--red:#8B2020;--border:#C9A84C}}
-  body{{background:#E8DFC8;font-family:'Lato','Noto Sans Devanagari',sans-serif;display:flex;justify-content:center;padding:30px 16px;min-height:100vh}}
-  .wrap{{width:100%;max-width:720px;background:var(--cream);border:2px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,.25);position:relative;overflow:hidden}}
-  .wrap::before,.wrap::after{{content:'';position:absolute;width:60px;height:60px;border-color:var(--gold);border-style:solid}}
-  .wrap::before{{top:8px;left:8px;border-width:2px 0 0 2px}}
-  .wrap::after{{bottom:8px;right:8px;border-width:0 2px 2px 0}}
-  .hdr{{background:linear-gradient(135deg,var(--dark) 0%,#3A2A0A 100%);color:var(--gold2);text-align:center;padding:28px 24px 20px;border-bottom:3px solid var(--border)}}
-  .shop-name{{font-family:'Cinzel',serif;font-size:2rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,.4)}}
-  .ornament{{color:var(--gold);font-size:1.2rem;margin:6px 0;letter-spacing:8px}}
-  .shop-sub{{font-size:.82rem;color:#C9A84C;letter-spacing:1px;margin-top:4px}}
-  .meta{{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 28px;background:var(--light);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}}
-  .mb{{font-size:.82rem;color:#555;line-height:1.7}}
-  .mb strong{{color:var(--dark);font-size:.88rem;display:block}}
-  .lbl{{font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:700;margin-bottom:2px}}
-  .sec{{padding:20px 28px 4px}}
-  .sec-title{{font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:12px}}
-  table{{width:100%;border-collapse:collapse;margin-bottom:16px}}
-  thead th{{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:#888;font-weight:700;padding:6px 8px;text-align:left;border-bottom:1px solid #DDD}}
-  thead th:last-child{{text-align:right}}
-  tbody tr{{border-bottom:1px dashed #E5DCC5}}
-  tbody tr:last-child{{border-bottom:none}}
-  tbody td{{padding:10px 8px;font-size:.9rem;color:var(--dark);vertical-align:middle}}
-  tbody td:last-child{{text-align:right;font-weight:700;color:#3A2A0A}}
-  .iname{{font-weight:700}}
-  .summ{{margin:4px 28px 20px;background:var(--light);border:1px solid var(--border);padding:14px 20px}}
-  .sr{{display:flex;justify-content:space-between;padding:5px 0;font-size:.88rem;color:#555;border-bottom:1px dashed #DDD}}
-  .sr:last-child{{border-bottom:none}}
-  .sr.net{{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;color:var(--dark);border-top:2px solid var(--border);margin-top:4px;padding-top:10px}}
-  .sr.net span:last-child{{color:var(--gold)}}
-  .ded{{color:var(--red)!important}}
-  .ftr{{background:var(--dark);color:#C9A84C;text-align:center;padding:16px 24px;font-size:.75rem;letter-spacing:1px}}
-  .ftr .tag{{font-family:'Cinzel',serif;font-size:.8rem;margin-bottom:4px}}
-  .no-print{{margin-top:20px;text-align:center}}
-  .pbtn{{background:var(--gold);color:var(--dark);border:none;padding:10px 32px;font-family:'Cinzel',serif;font-size:.9rem;letter-spacing:2px;cursor:pointer;text-transform:uppercase}}
-  .pbtn:hover{{background:var(--gold2)}}
-  @media print{{body{{background:white;padding:0}}.no-print{{display:none}}.wrap{{box-shadow:none;border:1px solid #999;max-width:100%}}}}
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{
+    background: #E8DFC8;
+    font-family: Arial, 'Noto Sans Devanagari', sans-serif;
+    padding: 20px;
+    font-size: 13px;
+    color: #1A1208;
+  }}
+  .wrap {{
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    background: #FBF6EC;
+    border: 2px solid #C9A84C;
+  }}
+  .hdr {{
+    background: #1A1208;
+    color: #D4A017;
+    text-align: center;
+    padding: 22px 20px 16px;
+    border-bottom: 3px solid #C9A84C;
+  }}
+  .shop-name {{
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }}
+  .ornament {{
+    color: #C9A84C;
+    font-size: 14px;
+    margin: 5px 0;
+    letter-spacing: 6px;
+  }}
+  .shop-sub {{
+    font-size: 11px;
+    color: #C9A84C;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }}
+  .meta {{
+    display: table;
+    width: 100%;
+    padding: 14px 24px;
+    background: #F5EDD8;
+    border-bottom: 1px solid #C9A84C;
+  }}
+  .meta-cell {{
+    display: table-cell;
+    vertical-align: top;
+    font-size: 12px;
+    color: #555;
+    line-height: 1.7;
+    width: 33%;
+  }}
+  .meta-cell.center {{ text-align: center; }}
+  .meta-cell.right  {{ text-align: right; }}
+  .meta-cell strong {{ color: #1A1208; font-size: 13px; display: block; }}
+  .lbl {{
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #B8860B;
+    font-weight: bold;
+    margin-bottom: 2px;
+  }}
+  .sec {{ padding: 16px 24px 4px; }}
+  .sec-title {{
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #B8860B;
+    border-bottom: 1px solid #C9A84C;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+  }}
+  .sec-title-old {{
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #8B2020;
+    border-bottom: 1px solid #E0A0A0;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+  }}
+  table {{ width: 100%; border-collapse: collapse; margin-bottom: 14px; }}
+  thead th {{
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    font-weight: bold;
+    padding: 5px 7px;
+    text-align: left;
+    border-bottom: 1px solid #DDD;
+  }}
+  thead th.right {{ text-align: right; }}
+  tbody tr {{ border-bottom: 1px dashed #E5DCC5; }}
+  tbody td {{
+    padding: 8px 7px;
+    font-size: 12px;
+    color: #1A1208;
+    vertical-align: middle;
+  }}
+  tbody td.right {{ text-align: right; font-weight: bold; }}
+  tbody td.red   {{ text-align: right; font-weight: bold; color: #8B2020; }}
+  .iname {{ font-weight: bold; }}
+  .summ {{
+    margin: 4px 24px 18px;
+    background: #F5EDD8;
+    border: 1px solid #C9A84C;
+    padding: 12px 18px;
+  }}
+  .sr {{
+    display: table;
+    width: 100%;
+    padding: 4px 0;
+    font-size: 12px;
+    color: #555;
+    border-bottom: 1px dashed #DDD;
+  }}
+  .sr-label {{ display: table-cell; }}
+  .sr-value {{ display: table-cell; text-align: right; }}
+  .sr.net {{
+    font-size: 14px;
+    font-weight: bold;
+    color: #1A1208;
+    border-top: 2px solid #C9A84C;
+    border-bottom: none;
+    margin-top: 4px;
+    padding-top: 8px;
+  }}
+  .sr.net .sr-value {{ color: #B8860B; }}
+  .ded {{ color: #8B2020; }}
+  .ftr {{
+    background: #1A1208;
+    color: #C9A84C;
+    text-align: center;
+    padding: 14px 20px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }}
+  .ftr .tag {{ font-weight: bold; font-size: 12px; margin-bottom: 4px; }}
+  .no-print {{ margin-top: 18px; text-align: center; }}
+  .pbtn {{
+    background: #B8860B;
+    color: #1A1208;
+    border: none;
+    padding: 9px 28px;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }}
+  @media print {{
+    body {{ background: white; padding: 0; }}
+    .no-print {{ display: none; }}
+    .wrap {{ box-shadow: none; border: 1px solid #999; max-width: 100%; }}
+  }}
 </style>
 </head>
 <body>
 <div class='wrap'>
+
   <div class='hdr'>
     <div class='shop-name'>{shop.ShopName}</div>
-    <div class='ornament'>✦ ✦ ✦</div>
-    <div class='shop-sub'>📞 {shop.Phone} &nbsp;|&nbsp; {L.SubTitle}</div>
+    <div class='ornament'>* * *</div>
+    <div class='shop-sub'>{shop.Phone} | {L.SubTitle}</div>
   </div>
+
   <div class='meta'>
-    <div class='mb'>
+    <div class='meta-cell'>
       <div class='lbl'>{L.CustomerLabel}</div>
-      <strong>{customer.Name}</strong>📞 {customer.Phone}
+      <strong>{customer.Name}</strong>
+      {customer.Phone}
     </div>
-    <div class='mb' style='text-align:center'>
+    <div class='meta-cell center'>
       <div class='lbl'>{L.BillNoLabel}</div>
       <strong>{billNo}</strong>
     </div>
-    <div class='mb' style='text-align:right'>
+    <div class='meta-cell right'>
       <div class='lbl'>{L.DateLabel}</div>
       <strong>{bill.Date:dd MMM yyyy}</strong>
     </div>
   </div>
 ");
+
+            // ── New items section ─────────────────────────────────────────────
             if (bill.NewItems.Count > 0)
             {
                 sb.Append($@"  <div class='sec'>
     <div class='sec-title'>{L.NewSectionTitle}</div>
     <table>
-      <thead><tr><th>{L.ColItem}</th><th>{L.ColWeight}</th><th>{L.ColAmount}</th></tr></thead>
+      <thead>
+        <tr>
+          <th>{L.ColItem}</th>
+          <th>{L.ColWeight}</th>
+          <th class='right'>{L.ColAmount}</th>
+        </tr>
+      </thead>
       <tbody>
 ");
                 foreach (var item in bill.NewItems)
-                    sb.Append($"        <tr><td><div class='iname'>{item.Name}</div></td><td>{item.Weight:0.##} gm</td><td>₹{item.Price:N0}</td></tr>\n");
+                    sb.Append($"        <tr><td><div class='iname'>{item.Name}</div></td><td>{item.Weight:0.##} gm</td><td class='right'>Rs.{item.Price:N0}</td></tr>\n");
 
                 sb.Append("      </tbody>\n    </table>\n  </div>\n");
             }
 
+            // ── Old items section ─────────────────────────────────────────────
             if (bill.OldItems.Count > 0)
             {
                 sb.Append($@"  <div class='sec'>
-    <div class='sec-title' style='color:#8B2020;border-color:#E0A0A0'>{L.OldSectionTitle}</div>
+    <div class='sec-title-old'>{L.OldSectionTitle}</div>
     <table>
       <thead style='background:#FFF5F5'>
         <tr>
           <th style='color:#8B2020'>{L.ColItem}</th>
           <th style='color:#8B2020'>{L.ColWeight}</th>
-          <th style='color:#8B2020'>{L.ColAmount}</th>
+          <th class='right' style='color:#8B2020'>{L.ColAmount}</th>
         </tr>
       </thead>
       <tbody>
 ");
                 foreach (var item in bill.OldItems)
-                    sb.Append($"        <tr><td><div class='iname'>{item.Name}</div></td><td>{item.Weight:0.##} gm</td><td style='color:#8B2020'>₹{item.Price:N0}</td></tr>\n");
+                    sb.Append($"        <tr><td><div class='iname'>{item.Name}</div></td><td>{item.Weight:0.##} gm</td><td class='red'>Rs.{item.Price:N0}</td></tr>\n");
 
                 sb.Append("      </tbody>\n    </table>\n  </div>\n");
             }
 
+            // ── Summary ───────────────────────────────────────────────────────
             sb.Append($@"  <div class='summ'>
-    <div class='sr'><span>{L.SummaryNew}</span><span>₹{newTotal:N0}</span></div>
+    <div class='sr'>
+      <span class='sr-label'>{L.SummaryNew}</span>
+      <span class='sr-value'>Rs.{newTotal:N0}</span>
+    </div>
 ");
             if (oldTotal > 0)
-                sb.Append($"    <div class='sr'><span>{L.SummaryOld}</span><span class='ded'>− ₹{oldTotal:N0}</span></div>\n");
+                sb.Append($@"    <div class='sr'>
+      <span class='sr-label'>{L.SummaryOld}</span>
+      <span class='sr-value ded'>- Rs.{oldTotal:N0}</span>
+    </div>
+");
 
-            sb.Append($@"    <div class='sr net'><span>{L.SummaryNet}</span><span>₹{netAmount:N0}</span></div>
+            sb.Append($@"    <div class='sr net'>
+      <span class='sr-label'>{L.SummaryNet}</span>
+      <span class='sr-value'>Rs.{netAmount:N0}</span>
+    </div>
   </div>
+
   <div class='ftr'>
     <div class='tag'>{L.FooterTagline}</div>
-    <div>{shop.ShopName} &nbsp;|&nbsp; {shop.Phone}</div>
+    <div>{shop.ShopName} | {shop.Phone}</div>
   </div>
+
 </div>
-<div class='no-print'>
-  <button class='pbtn' onclick='window.print()'>{L.PrintBtn}</button>
-</div>
+
 </body></html>");
 
             return sb.ToString();
@@ -401,7 +574,6 @@ namespace Jewellery.Application.Master.Commands
         private static bool IsSectionHeader(string line, bool isNew)
         {
             if (line.Contains('=') || line.Contains('|')) return false;
-
             string lower = line.ToLower();
             return isNew
                 ? lower.StartsWith("sale") || lower.StartsWith("new")

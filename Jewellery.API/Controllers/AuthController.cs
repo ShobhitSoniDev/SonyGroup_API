@@ -35,4 +35,10 @@ public class AuthController : BaseApiController
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+    [HttpPost("ConvertPassword")]
+    public async Task<IActionResult> ConvertPassword([FromBody] ConvertPasswordCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
 }
