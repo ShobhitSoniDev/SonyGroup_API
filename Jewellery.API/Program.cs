@@ -111,7 +111,6 @@ builder.Services.AddScoped<IGetMenuRepository, GetMenuRepository>();
 // Master
 builder.Services.AddScoped<IMetalRepository, MetalRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IGetLoan_MastersRepository, GetLoan_MastersRepository>();
 builder.Services.AddScoped<IMasterRepository, MasterRepository>();

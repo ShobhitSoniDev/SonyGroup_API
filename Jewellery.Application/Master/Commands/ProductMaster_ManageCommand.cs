@@ -12,28 +12,30 @@ namespace Jewellery.Application.Master.Commands
     // ✅ Command
     public class ProductMaster_ManageCommand : IRequest<ResponseModel>
     {
-        public int ProductId { get; set; } = 0;
+        public int ProductId { get; set; }
+        public string ProductCode { get; set; } = "";
         public string ProductName { get; set; } = "";
-        public int CategoryId { get; set; } = 0;
-        public int MetalId { get; set; } = 0;
-        public decimal GrossWeight { get; set; } = 0;
-        public decimal NetWeight { get; set; } = 0;
-        public decimal WastageWeight { get; set; } = 0;
-        public decimal MakingCharge { get; set; } = 0;
-        public decimal RatePerGram { get; set; } = 0;
-        public int TotalQuantity { get; set; } = 0;
-        public int TypeId { get; set; } = 0;
+        public int CategoryId { get; set; }
+        public int MetalId { get; set; }
+        public int? SupplierId { get; set; }
+        public decimal GrossWeight { get; set; }
+        public decimal NetWeight { get; set; }
+        public decimal MakingCharge { get; set; }
+        public string MakingChargeType { get; set; } = "";
+        public int TotalQuantity { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int TypeId { get; set; }
     }
 
     // ✅ Handler
     public class ProductMaster_ManageCommandHandler
         : IRequestHandler<ProductMaster_ManageCommand, ResponseModel>
     {
-        private readonly IProductRepository _productRepository;
+        private readonly IMasterRepository _masterRepository;
         private readonly IErrorLogRepository _errorLogRepository;
-        public ProductMaster_ManageCommandHandler(IProductRepository productRepository, IErrorLogRepository errorLogRepository)
+        public ProductMaster_ManageCommandHandler(IMasterRepository masterRepository, IErrorLogRepository errorLogRepository)
         {
-            _productRepository = productRepository;
+            _masterRepository = masterRepository;
             _errorLogRepository = errorLogRepository;
         }
 
@@ -41,75 +43,75 @@ namespace Jewellery.Application.Master.Commands
         {
             try
             {
-                if (request.TypeId == 1 || request.TypeId == 2)
+                if (request.TypeId == 2 || request.TypeId == 3)
                 {
-                    var error = CommonInputValidator.Validate(value: request.ProductName, numeric: false, minLength: 2, maxLength: 20);
-                    if (error.Code == 0)
-                        return error;
-                    error = CommonInputValidator.Validate(value: request.MetalId.ToString(), numeric: true, minLength: 1, maxLength: 20);
-                    if (error.Code == 0)
-                        return error;
-                    error = CommonInputValidator.Validate(value: request.CategoryId.ToString(), numeric: true, minLength: 1, maxLength: 20);
-                    if (error.Code == 0)
-                        return error;
-                    error = CommonInputValidator.Validate(value: request.GrossWeight.ToString(), numeric: true, allowDecimal: true, minLength: 1, maxLength: 20);
-                    error = CommonInputValidator.Validate(value: request.NetWeight.ToString(), numeric: true, allowDecimal: true, minLength: 1, maxLength: 20);
-                    error = CommonInputValidator.Validate(value: request.WastageWeight.ToString(), numeric: true, allowDecimal: true, minLength: 1, maxLength: 20);
-                    error = CommonInputValidator.Validate(value: request.MakingCharge.ToString(), numeric: true, allowDecimal: true, minLength: 1, maxLength: 20);
-                    error = CommonInputValidator.Validate(value: request.RatePerGram.ToString(), numeric: true, allowDecimal: true, minLength: 1, maxLength: 20);
-                    error = CommonInputValidator.Validate(value: request.TotalQuantity.ToString(), numeric: true, allowDecimal: false, minLength: 1, maxLength: 20);
-                    
+                    var error = CommonInputValidator.Validate(request.ProductCode, false,false, 2, 30);
+                    if (error.Code == 0) return error;
+
+                    error = CommonInputValidator.Validate(request.ProductName,false, false, 2, 200);
+                    if (error.Code == 0) return error;
+
+                    error = CommonInputValidator.Validate(request.CategoryId.ToString(), true,false, 1, 10);
+                    if (error.Code == 0) return error;
+
+                    error = CommonInputValidator.Validate(request.MetalId.ToString(), true,false, 1, 10);
+                    if (error.Code == 0) return error;
+
+                    error = CommonInputValidator.Validate(request.GrossWeight.ToString(), true, true, 1, 20);
+                    if (error.Code == 0) return error;
+
+                    error = CommonInputValidator.Validate(request.NetWeight.ToString(), true, true, 1, 20);
+                    if (error.Code == 0) return error;
+
+                    error = CommonInputValidator.Validate(request.MakingCharge.ToString(), true, true, 1, 20);
+                    if (error.Code == 0) return error;
+
+                    error = CommonInputValidator.Validate(request.TotalQuantity.ToString(), true, false, 1, 10);
+                    if (error.Code == 0) return error;
                 }
-                var productmodel = new ProductMasterModel
+
+                var model = new ProductMasterModel
                 {
                     ProductId = request.ProductId,
+                    ProductCode = request.ProductCode,
                     ProductName = request.ProductName,
                     CategoryId = request.CategoryId,
                     MetalId = request.MetalId,
+                    SupplierId = request.SupplierId,
                     GrossWeight = request.GrossWeight,
                     NetWeight = request.NetWeight,
-                    WastageWeight = request.WastageWeight,
                     MakingCharge = request.MakingCharge,
-                    RatePerGram = request.RatePerGram,
+                    MakingChargeType = request.MakingChargeType,
                     TotalQuantity = request.TotalQuantity,
+                    IsActive = request.IsActive,
                     TypeId = request.TypeId
                 };
-                var insertedproduct = await _productRepository.ProductMaster_ManageAsync(productmodel);
-                if (insertedproduct != null)
+
+                var result = await _masterRepository.ProductMaster_ManageAsync(model);
+
+                return new ResponseModel
                 {
-                    return new ResponseModel
-                    {
-                        Code = 1,
-                        Message = "SUCCESS",
-                        Data = insertedproduct
-                    };
-                }
-                else
-                {
-                    return new ResponseModel
-                    {
-                        Code = 1,
-                        Message = "FAILED"
-                    };
-                }
+                    Code = 1,
+                    Message = "SUCCESS",
+                    Data = result
+                };
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 var stackTrace = new StackTrace(ex, true);
                 var frame = stackTrace.GetFrame(0);
 
-                int? lineNumber = frame?.GetFileLineNumber();
-                string? stackTraceText = ex.StackTrace;
                 var errorLog = new ErrorLog
                 {
                     ApiName = "ProductMaster_ManageCommand",
                     ErrorMessage = ex.Message,
-                    StackTrace = stackTraceText,
-                    LineNumber = lineNumber ?? 0,
+                    StackTrace = ex.StackTrace,
+                    LineNumber = frame?.GetFileLineNumber() ?? 0,
                     CreatedDate = DateTime.Now
                 };
-                // ✅ Save Log in DB (via Infrastructure)
-                _errorLogRepository.SaveErrorAsync(errorLog);
+
+                await _errorLogRepository.SaveErrorAsync(errorLog);
+
                 return new ResponseModel
                 {
                     Code = 0,
