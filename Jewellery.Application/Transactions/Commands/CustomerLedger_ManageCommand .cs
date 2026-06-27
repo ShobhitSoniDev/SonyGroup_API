@@ -3,6 +3,7 @@ using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
 using MediatR;
+using System.Diagnostics;
 
 namespace Jewellery.Application.Transactions.Commands
 {
@@ -22,13 +23,15 @@ namespace Jewellery.Application.Transactions.Commands
     {
         private readonly ITransactionsRepository _transactionsRepository;
         private readonly ICurrentUserService _currentUserService;
-
+        private readonly IErrorLogRepository _errorLogRepository;
         public CustomerLedger_ManageCommandHandler(
             ITransactionsRepository customerRepository,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IErrorLogRepository errorLogRepository)
         {
             _transactionsRepository = customerRepository;
             _currentUserService = currentUserService;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(
@@ -116,12 +119,27 @@ namespace Jewellery.Application.Transactions.Commands
                     Message = "FAILED"
                 };
             }
-            catch
+            catch(Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "CustomerLedger_ManageCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
                     Code = 0,
-                    Message = "FAILED"
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

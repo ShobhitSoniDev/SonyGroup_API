@@ -1,10 +1,11 @@
-﻿using MediatR;
-using Jewellery.Application.Master.Interfaces;
+﻿using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
+using Jewellery.Domain.Entities;
+using MediatR;
+using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Jewellery.Domain.Entities;
-using System;
 
 namespace Jewellery.Application.Master.Commands
 {
@@ -29,10 +30,11 @@ namespace Jewellery.Application.Master.Commands
         : IRequestHandler<GetLoanEntryReportCommand, ResponseModel>
     {
         private readonly ILoanEntryReportRepository _loanEntryReportsRepository;
-
-        public GetLoanEntryReportCommandHandler(ILoanEntryReportRepository loanEntryReportsRepository)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public GetLoanEntryReportCommandHandler(ILoanEntryReportRepository loanEntryReportsRepository, IErrorLogRepository errorLogRepository)
         {
             _loanEntryReportsRepository = loanEntryReportsRepository;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(GetLoanEntryReportCommand request, CancellationToken cancellationToken)
@@ -75,10 +77,25 @@ namespace Jewellery.Application.Master.Commands
             }
             catch (Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "GetLoanEntryReportCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
-                    Code = 1,
-                    Message = "FAILED"
+                    Code = 0,
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

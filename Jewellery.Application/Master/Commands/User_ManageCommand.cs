@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,10 +29,12 @@ namespace Jewellery.Application.Master.Commands
     {
         private readonly IMasterRepository _masterRepository;
         private readonly PasswordSecurityHelper _passSecurity;
-        public User_ManageCommandHandler(IMasterRepository masterRepository, PasswordSecurityHelper passSecurity)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public User_ManageCommandHandler(IMasterRepository masterRepository, PasswordSecurityHelper passSecurity, IErrorLogRepository errorLogRepository)
         {
             _masterRepository = masterRepository;
             _passSecurity = passSecurity;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(
@@ -77,10 +80,25 @@ namespace Jewellery.Application.Master.Commands
             }
             catch (Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "User_ManageCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
                     Code = 0,
-                    Message = ex.Message
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

@@ -1,18 +1,18 @@
-﻿using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
-using Jewellery.Application.Master.Interfaces;
+﻿using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
 using Jewellery.Application.Services.Interfaces;
 using Jewellery.Domain.Entities;
 using MediatR;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static Jewellery.Domain.Entities.CustomerBillGenerateModel;
-
 // Fix: Unit ambiguous reference between QuestPDF.Infrastructure.Unit and MediatR.Unit
 using Unit = QuestPDF.Infrastructure.Unit;
 
@@ -37,16 +37,18 @@ namespace Jewellery.Application.Master.Commands
     {
         private readonly IReportsRepository _reportsRepository;
         private readonly IBlobStorageService _blobStorageService;
-
+        private readonly IErrorLogRepository _errorLogRepository;
         public CustomerBillGenerateCommandHandler(
             IReportsRepository customerRepository,
-            IBlobStorageService blobStorageService)
+            IBlobStorageService blobStorageService,
+            IErrorLogRepository errorLogRepository)
         {
             _reportsRepository = customerRepository;
             _blobStorageService = blobStorageService;
 
             // QuestPDF Community license — free for commercial use
             QuestPDF.Settings.License = LicenseType.Community;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(
@@ -134,7 +136,26 @@ namespace Jewellery.Application.Master.Commands
             }
             catch (Exception ex)
             {
-                return new ResponseModel { Code = 0, Message = ex.Message };
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "CustomerBillGenerateCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
+                return new ResponseModel
+                {
+                    Code = 0,
+                    Message = "Something went wrong. Please try again later."
+                };
             }
         }
 

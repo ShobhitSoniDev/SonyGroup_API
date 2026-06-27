@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.IO.IsolatedStorage;
 
 namespace Jewellery.Application.Transactions.Commands
@@ -27,11 +28,12 @@ namespace Jewellery.Application.Transactions.Commands
     : IRequestHandler<LoanTransactionsDetail_ManageCommand, ResponseModel>
     {
         private readonly ILoanRepository _loanRepository;
-
+        private readonly IErrorLogRepository _errorLogRepository;
         public LoanTransactionsDetail_ManageCommandHandler(
-            ILoanRepository loanRepository)
+            ILoanRepository loanRepository, IErrorLogRepository errorLogRepository)
         {
             _loanRepository = loanRepository;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(
@@ -85,10 +87,25 @@ namespace Jewellery.Application.Transactions.Commands
             }
             catch (Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "LoanTransactionsDetail_ManageCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
                     Code = 0,
-                    Message = ex.Message
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

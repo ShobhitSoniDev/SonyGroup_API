@@ -1,6 +1,8 @@
-﻿using MediatR;
+﻿using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
+using MediatR;
+using System.Diagnostics;
 
 
 namespace Jewellery.Application.Transactions.Commands
@@ -24,10 +26,11 @@ namespace Jewellery.Application.Transactions.Commands
         : IRequestHandler<StockTransaction_ManageCommand, ResponseModel>
     {
         private readonly IStockRepository _stockRepository;
-
-        public StockTransaction_ManageCommandHandler(IStockRepository stockRepository)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public StockTransaction_ManageCommandHandler(IStockRepository stockRepository, IErrorLogRepository errorLogRepository)
         {
             _stockRepository = stockRepository;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(StockTransaction_ManageCommand request, CancellationToken cancellationToken)
@@ -86,10 +89,25 @@ namespace Jewellery.Application.Transactions.Commands
             }
             catch(Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "StockTransaction_ManageCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
-                    Code = 1,
-                    Message = "FAILED"
+                    Code = 0,
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

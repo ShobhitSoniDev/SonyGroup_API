@@ -1,8 +1,9 @@
-﻿using MediatR;
-using Jewellery.Application.Master.Interfaces;
+﻿using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
 using Jewellery.Domain.Entities;
+using MediatR;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,10 +25,11 @@ namespace Jewellery.Application.Master.Commands
         : IRequestHandler<RoleMaster_ManageCommand, ResponseModel>
     {
         private readonly IMasterRepository _masterRepository;
-
-        public RoleMaster_ManageCommandHandler(IMasterRepository roleRepository)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public RoleMaster_ManageCommandHandler(IMasterRepository roleRepository, IErrorLogRepository errorLogRepository)
         {
             _masterRepository = roleRepository;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(
@@ -79,10 +81,25 @@ namespace Jewellery.Application.Master.Commands
             }
             catch (Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "RoleMaster_ManageCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
                     Code = 0,
-                    Message = ex.Message
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

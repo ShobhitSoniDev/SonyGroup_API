@@ -1,10 +1,11 @@
-﻿using MediatR;
+﻿using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
+using Jewellery.Domain.Entities;
+using MediatR;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Jewellery.Domain.Entities;
-using Jewellery.Application.Auth.Interfaces;
 
 namespace Jewellery.Application.Reports.Queries
 {
@@ -19,10 +20,11 @@ namespace Jewellery.Application.Reports.Queries
         : IRequestHandler<Dashboard_GetDataQuery, ResponseModel>
     {
         private readonly IDashboard_GetDataRepository _dashboard_GetDataRepository;
-
-        public Dashboard_GetDataQueryHandler(IDashboard_GetDataRepository dashboard_GetDataRepository)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public Dashboard_GetDataQueryHandler(IDashboard_GetDataRepository dashboard_GetDataRepository, IErrorLogRepository errorLogRepository)
         {
             _dashboard_GetDataRepository = dashboard_GetDataRepository;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(Dashboard_GetDataQuery request, CancellationToken cancellationToken)
@@ -50,10 +52,25 @@ namespace Jewellery.Application.Reports.Queries
             }
             catch(Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "Dashboard_GetDataQuery",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
-                    Code = 1,
-                    Message = "FAILED"
+                    Code = 0,
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

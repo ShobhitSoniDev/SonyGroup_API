@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.IO.IsolatedStorage;
 
 namespace Jewellery.Application.Transactions.Commands
@@ -44,11 +45,12 @@ namespace Jewellery.Application.Transactions.Commands
     {
         private readonly ILoanRepository _loanRepository;
         private readonly IBlobStorageService _blobStorageService;
-
-        public LoanEntry_ManageCommandHandler(ILoanRepository loanRepository, IBlobStorageService blobStorageService)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public LoanEntry_ManageCommandHandler(ILoanRepository loanRepository, IBlobStorageService blobStorageService, IErrorLogRepository errorLogRepository)
         {
             _loanRepository = loanRepository;
             _blobStorageService = blobStorageService;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(LoanEntry_ManageCommand request, CancellationToken cancellationToken)
@@ -198,11 +200,25 @@ namespace Jewellery.Application.Transactions.Commands
             }
             catch (Exception ex)
             {
-                // ✅ LOG ERROR (IMPORTANT)
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "LoanEntry_ManageCommand",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
                     Code = 0,
-                    Message = ex.Message
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

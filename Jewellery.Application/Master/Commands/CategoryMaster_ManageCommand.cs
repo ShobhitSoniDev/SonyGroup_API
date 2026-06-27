@@ -1,9 +1,10 @@
-﻿using MediatR;
-using Jewellery.Application.Master.Interfaces;
+﻿using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
+using Jewellery.Domain.Entities;
+using MediatR;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Jewellery.Domain.Entities;
 
 namespace Jewellery.Application.Master.Commands
 {
@@ -22,10 +23,11 @@ namespace Jewellery.Application.Master.Commands
         : IRequestHandler<CategoryMaster_ManageCommand, ResponseModel>
     {
         private readonly ICategoryRepository _categoryRepository;
-
-        public CategoryMaster_ManageCommandHandler(ICategoryRepository categoryRepository)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public CategoryMaster_ManageCommandHandler(ICategoryRepository categoryRepository,IErrorLogRepository errorLogRepository)
         {
             _categoryRepository = categoryRepository;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(CategoryMaster_ManageCommand request, CancellationToken cancellationToken)
@@ -64,10 +66,25 @@ namespace Jewellery.Application.Master.Commands
             }
             catch(Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "CategoryMaster_ManageCommandHandler",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
-                    Code = 1,
-                    Message = "FAILED"
+                    Code = 0,
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

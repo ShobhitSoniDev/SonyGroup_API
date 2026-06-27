@@ -1,10 +1,11 @@
-﻿using MediatR;
-using Jewellery.Application.Master.Interfaces;
+﻿using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
+using Jewellery.Domain.Entities;
+using MediatR;
+using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Jewellery.Domain.Entities;
-using System;
 
 namespace Jewellery.Application.Master.Commands
 {
@@ -26,10 +27,11 @@ namespace Jewellery.Application.Master.Commands
         : IRequestHandler<CustomerMaster_ManageCommand, ResponseModel>
     {
         private readonly ICustomerRepository _customerRepository;
-
-        public CustomerMaster_ManageCommandHandler(ICustomerRepository customerRepository)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public CustomerMaster_ManageCommandHandler(ICustomerRepository customerRepository, IErrorLogRepository errorLogRepository)
         {
             _customerRepository = customerRepository;
+            _errorLogRepository = errorLogRepository;
         }
 
         public async Task<ResponseModel> Handle(CustomerMaster_ManageCommand request, CancellationToken cancellationToken)
@@ -82,10 +84,25 @@ namespace Jewellery.Application.Master.Commands
             }
             catch(Exception ex)
             {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "CustomerMaster_ManageCommandHandler",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
-                    Code = 1,
-                    Message = "FAILED"
+                    Code = 0,
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }
