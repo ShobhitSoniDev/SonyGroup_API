@@ -99,5 +99,48 @@ namespace Jewellery.Infrastructure.Master.Repositories
 
             return await result.ReadAsync<dynamic>();
         }
+        public async Task<dynamic> Supplier_ManageAsync(SupplierModel model)
+        {
+            using var connection =new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+
+            var param = new DynamicParameters();
+
+            param.Add("@SupplierId", model.SupplierId);
+            param.Add("@SupplierName", model.SupplierName);
+            param.Add("@Phone", model.Phone);
+            param.Add("@GSTIN", model.GSTIN);
+            param.Add("@Address", model.Address);
+            param.Add("@IsActive", model.IsActive);
+            param.Add("@TypeId", model.TypeId);
+
+            using var result = await connection.QueryMultipleAsync("Jewellery.Supplier_Master_Manage",param,commandType: CommandType.StoredProcedure);
+            return await result.ReadAsync<dynamic>();
+        }
+        public async Task<dynamic> ProductMaster_ManageAsync(ProductMasterModel product)
+        {
+            using var connection = new SqlConnection(
+                _configuration.GetConnectionString(_currentUser.shopCode));
+
+            var parameters = new DynamicParameters();
+
+            parameters.Add("@TypeId", product.TypeId);
+            parameters.Add("@ProductId", product.ProductId);
+            parameters.Add("@ProductCode", product.ProductCode);
+            parameters.Add("@ProductName", product.ProductName);
+            parameters.Add("@CategoryId", product.CategoryId);
+            parameters.Add("@MetalId", product.MetalId);
+            parameters.Add("@SupplierId", product.SupplierId);
+            parameters.Add("@GrossWeight", product.GrossWeight);
+            parameters.Add("@NetWeight", product.NetWeight);
+            parameters.Add("@MakingCharge", product.MakingCharge);
+            parameters.Add("@MakingChargeType", product.MakingChargeType);
+            parameters.Add("@TotalQuantity", product.TotalQuantity);
+            parameters.Add("@IsActive", product.IsActive);
+            parameters.Add("@AuditBy", _currentUser.UserName);
+
+            using var result = await connection.QueryMultipleAsync("Jewellery.ProductMaster_Manage",parameters,commandType:CommandType.StoredProcedure);
+
+            return await result.ReadAsync<dynamic>();
+        }
     }
 }

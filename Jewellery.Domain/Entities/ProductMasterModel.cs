@@ -8,16 +8,19 @@ namespace Jewellery.Domain.Entities
 {
     public class ProductMasterModel
     {
-        public int ProductId { get; set; } = 0;
-        public string ProductName { get; set; } = "";
-        public int CategoryId { get; set; } = 0;
-        public int MetalId { get; set; } = 0;
-        public decimal GrossWeight { get; set; } = 0;
-        public decimal NetWeight { get; set; } = 0;
-        public decimal WastageWeight { get; set; } = 0;
-        public decimal MakingCharge { get; set; } = 0;
-        public decimal RatePerGram { get; set; } = 0;
-        public int TotalQuantity { get; set; } = 0;
-        public int TypeId { get; set; } = 0;
+        public int ProductId { get; set; }
+        public string ProductCode { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
+        public int MetalId { get; set; }
+        public int? SupplierId { get; set; }
+        public decimal GrossWeight { get; set; }
+        public decimal NetWeight { get; set; }
+        public decimal MakingCharge { get; set; }
+        public string MakingChargeType { get; set; } = string.Empty;
+        public int TotalQuantity { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public int TypeId { get; set; }
     }
 }

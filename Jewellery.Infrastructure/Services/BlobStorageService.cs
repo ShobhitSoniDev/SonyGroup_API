@@ -1,7 +1,6 @@
 ﻿using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
-using Azure.Storage.Sas;
 using Jewellery.Application.Common.Interfaces;
 using Jewellery.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
