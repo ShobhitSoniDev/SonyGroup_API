@@ -17,6 +17,7 @@ namespace Jewellery.Application.Transactions.Commands
         public decimal PaidAmount { get; set; } = 0;
         public string Remarks { get; set; } = "";
         public int TypeId { get; set; }
+        public bool IsActive { get; set; } = true;
 
         // Purchase Details
         public List<PurchaseDetailModel> DetailsJson { get; set; } = new();
@@ -113,6 +114,7 @@ namespace Jewellery.Application.Transactions.Commands
                     TotalAmount = request.TotalAmount,
                     PaidAmount = request.PaidAmount,
                     Remarks = request.Remarks,
+                    IsActive = request.IsActive,
                     CreatedBy = _currentUserService.UserName,
                     TypeId = request.TypeId,
                     DetailsJson = request.DetailsJson

@@ -19,9 +19,10 @@ namespace Jewellery.Application.Transactions.Commands
         public string PaymentMode { get; set; } = "";
         public string Remarks { get; set; } = "";
         public int TypeId { get; set; }
+        public bool IsActive { get; set; } = true;
 
         // Details
-        public List<SalesDetailModel> Details { get; set; } = new();
+        public List<SalesDetailModel> DetailsJson { get; set; } = new();
     }
 
     public class Sales_ManageCommandHandler
@@ -86,7 +87,7 @@ namespace Jewellery.Application.Transactions.Commands
                     if (error.Code == 0)
                         return error;
 
-                    if (request.Details == null || request.Details.Count == 0)
+                    if (request.DetailsJson == null || request.DetailsJson.Count == 0)
                     {
                         return new ResponseModel
                         {
@@ -108,8 +109,8 @@ namespace Jewellery.Application.Transactions.Commands
                     PaymentMode = request.PaymentMode,
                     Remarks = request.Remarks,
                     TypeId = request.TypeId,
-                    CreatedBy = _currentUserService.UserName,
-                    Details = request.Details
+                    IsActive=request.IsActive,
+                    Details = request.DetailsJson
                 };
 
                 var result = await _transactionsRepository.Sales_ManageAsync(model);

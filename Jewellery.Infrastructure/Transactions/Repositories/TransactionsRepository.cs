@@ -63,6 +63,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@PaidAmount", model.PaidAmount);
             parameters.Add("@PaymentMode", model.PaymentMode);
             parameters.Add("@Remarks", model.Remarks);
+            parameters.Add("@IsActive", model.IsActive);
             parameters.Add("@CreatedBy", _currentUser.UserName);
 
             // Convert Detail List to JSON
@@ -105,6 +106,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@TotalAmount", model.TotalAmount);
             parameters.Add("@PaidAmount", model.PaidAmount);
             parameters.Add("@Remarks", model.Remarks);
+            parameters.Add("@IsActive", model.IsActive);
             parameters.Add("@CreatedBy", _currentUser.UserId);
 
             // Purchase Detail List to JSON
