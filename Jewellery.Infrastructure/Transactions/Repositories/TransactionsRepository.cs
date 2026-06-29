@@ -105,12 +105,12 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@TotalAmount", model.TotalAmount);
             parameters.Add("@PaidAmount", model.PaidAmount);
             parameters.Add("@Remarks", model.Remarks);
-            parameters.Add("@CreatedBy", _currentUser.UserName);
+            parameters.Add("@CreatedBy", _currentUser.UserId);
 
             // Purchase Detail List to JSON
             parameters.Add(
                 "@DetailsJson",
-                JsonConvert.SerializeObject(model.Details));
+                JsonConvert.SerializeObject(model.DetailsJson));
 
             using var result = await connection.QueryMultipleAsync(
                 "Jewellery.Purchase_Manage",

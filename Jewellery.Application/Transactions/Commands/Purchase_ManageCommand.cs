@@ -9,17 +9,17 @@ namespace Jewellery.Application.Transactions.Commands
 {
     public class Purchase_ManageCommand : IRequest<ResponseModel>
     {
-        public int PurchaseId { get; set; }
+        public int PurchaseId { get; set; } = 0;
         public string PurchaseNo { get; set; } = "";
-        public DateTime? PurchaseDate { get; set; }
-        public int SupplierId { get; set; }
-        public decimal TotalAmount { get; set; }
-        public decimal PaidAmount { get; set; }
+        public DateTime? PurchaseDate { get; set; } = DateTime.Now;
+        public int SupplierId { get; set; } = 0;
+        public decimal TotalAmount { get; set; } = 0;
+        public decimal PaidAmount { get; set; } = 0;
         public string Remarks { get; set; } = "";
         public int TypeId { get; set; }
 
         // Purchase Details
-        public List<PurchaseDetailModel> Details { get; set; } = new();
+        public List<PurchaseDetailModel> DetailsJson { get; set; } = new();
     }
 
     public class Purchase_ManageCommandHandler
@@ -94,7 +94,7 @@ namespace Jewellery.Application.Transactions.Commands
                     if (error.Code == 0)
                         return error;
 
-                    if (request.Details == null || request.Details.Count == 0)
+                    if (request.DetailsJson == null || request.DetailsJson.Count == 0)
                     {
                         return new ResponseModel
                         {
@@ -115,7 +115,7 @@ namespace Jewellery.Application.Transactions.Commands
                     Remarks = request.Remarks,
                     CreatedBy = _currentUserService.UserName,
                     TypeId = request.TypeId,
-                    Details = request.Details
+                    DetailsJson = request.DetailsJson
                 };
 
                 var result = await _transactionsRepository.Purchase_ManageAsync(model);

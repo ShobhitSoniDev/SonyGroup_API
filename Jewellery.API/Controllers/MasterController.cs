@@ -78,7 +78,7 @@ namespace Jewellery.API.Controllers.Master
             var result = await _mediator.Send(command);
             return Ok(result);
         }
-        [HttpPost("Supplier_Master_Manage")]
+        [HttpPost("SupplierMaster_Manage")]
         public async Task<IActionResult> SupplierMaster_Manage([FromBody] SupplierMaster_ManageCommand command)
         {
             var result = await _mediator.Send(command);
