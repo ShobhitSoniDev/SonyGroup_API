@@ -17,12 +17,8 @@ namespace Jewellery.Application.Master.Commands
         public string ProductName { get; set; } = "";
         public int CategoryId { get; set; }
         public int MetalId { get; set; }
-        public int? SupplierId { get; set; }
-        public decimal GrossWeight { get; set; }
-        public decimal NetWeight { get; set; }
         public decimal MakingCharge { get; set; }
         public string MakingChargeType { get; set; } = "";
-        public int TotalQuantity { get; set; }
         public bool IsActive { get; set; } = true;
         public int TypeId { get; set; }
     }
@@ -45,28 +41,20 @@ namespace Jewellery.Application.Master.Commands
             {
                 if (request.TypeId == 2 || request.TypeId == 3)
                 {
-                    var error = CommonInputValidator.Validate(request.ProductCode, false,false, 2, 30);
+                    var error = CommonInputValidator.Validate(request.ProductCode, false,false, 2, 1);
                     if (error.Code == 0) return error;
 
-                    error = CommonInputValidator.Validate(request.ProductName,false, false, 2, 200);
+                    error = CommonInputValidator.Validate(request.ProductName,false, false, 2, 1);
                     if (error.Code == 0) return error;
 
-                    error = CommonInputValidator.Validate(request.CategoryId.ToString(), true,false, 1, 10);
+                    error = CommonInputValidator.Validate(request.CategoryId.ToString(), true,false, 1, 1);
                     if (error.Code == 0) return error;
 
-                    error = CommonInputValidator.Validate(request.MetalId.ToString(), true,false, 1, 10);
+                    error = CommonInputValidator.Validate(request.MetalId.ToString(), true,false, 1, 1);
+                    if (error.Code == 0) return error;
+                    error = CommonInputValidator.Validate(request.MakingCharge.ToString(), true, true, 1, 1);
                     if (error.Code == 0) return error;
 
-                    error = CommonInputValidator.Validate(request.GrossWeight.ToString(), true, true, 1, 20);
-                    if (error.Code == 0) return error;
-
-                    error = CommonInputValidator.Validate(request.NetWeight.ToString(), true, true, 1, 20);
-                    if (error.Code == 0) return error;
-
-                    error = CommonInputValidator.Validate(request.MakingCharge.ToString(), true, true, 1, 20);
-                    if (error.Code == 0) return error;
-
-                    error = CommonInputValidator.Validate(request.TotalQuantity.ToString(), true, false, 1, 10);
                     if (error.Code == 0) return error;
                 }
 
@@ -77,12 +65,8 @@ namespace Jewellery.Application.Master.Commands
                     ProductName = request.ProductName,
                     CategoryId = request.CategoryId,
                     MetalId = request.MetalId,
-                    SupplierId = request.SupplierId,
-                    GrossWeight = request.GrossWeight,
-                    NetWeight = request.NetWeight,
                     MakingCharge = request.MakingCharge,
                     MakingChargeType = request.MakingChargeType,
-                    TotalQuantity = request.TotalQuantity,
                     IsActive = request.IsActive,
                     TypeId = request.TypeId
                 };

@@ -18,17 +18,18 @@ namespace Jewellery.Domain.Entities
         public string CreatedBy { get; set; } = string.Empty;
         public int TypeId { get; set; }
 
-        public List<PurchaseDetailModel> Details { get; set; } = new();
+        public List<PurchaseDetailModel> DetailsJson { get; set; } = new();
     }
     public class PurchaseDetailModel
     {
-        public int PurchaseDetailId { get; set; }
         public int ProductId { get; set; }
+        public int Quantity { get; set; }
         public decimal GrossWeight { get; set; }
         public decimal NetWeight { get; set; }
-        public decimal Rate { get; set; }
+        public decimal MetalRate { get; set; }
         public decimal MakingCharge { get; set; }
-        public int Quantity { get; set; }
+        public string MakingChargeType { get; set; }
+        public decimal StoneCharge { get; set; }
         public decimal Amount { get; set; }
     }
 }
