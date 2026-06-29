@@ -17,20 +17,33 @@ namespace Jewellery.Domain.Entities
         public decimal PaidAmount { get; set; }
         public string PaymentMode { get; set; } = string.Empty;
         public string Remarks { get; set; } = string.Empty;
-        public string CreatedBy { get; set; } = string.Empty;
         public int TypeId { get; set; }
-
+        public bool IsActive { get; set; } = true;
         // Sale Details
         public List<SalesDetailModel> Details { get; set; } = new();
     }
     public class SalesDetailModel
     {
         public int SaleDetailId { get; set; }
+
         public int ProductId { get; set; }
+
         public int Quantity { get; set; }
-        public decimal Weight { get; set; }
-        public decimal Rate { get; set; }
+
+        public decimal GrossWeight { get; set; }
+
+        public decimal NetWeight { get; set; }
+
+        public decimal MetalRate { get; set; }
+
         public decimal MakingCharge { get; set; }
+
+        public string MakingChargeType { get; set; } = string.Empty;
+
+        public decimal StoneCharge { get; set; }
+
+        public decimal GSTRate { get; set; }
+
         public decimal Amount { get; set; }
     }
 }

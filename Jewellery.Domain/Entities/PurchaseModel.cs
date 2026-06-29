@@ -17,7 +17,7 @@ namespace Jewellery.Domain.Entities
         public string Remarks { get; set; } = string.Empty;
         public string CreatedBy { get; set; } = string.Empty;
         public int TypeId { get; set; }
-
+        public bool IsActive { get; set; } = true;
         public List<PurchaseDetailModel> DetailsJson { get; set; } = new();
     }
     public class PurchaseDetailModel
