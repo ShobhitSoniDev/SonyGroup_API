@@ -24,7 +24,6 @@ namespace Jewellery.Infrastructure.Master.Repositories
             //using var connection = new SqlConnection(
             //    _configuration.GetConnectionString("DefaultConnection")
             //);
-
             var parameters = new DynamicParameters();
             parameters.Add("@UserId", _currentUser.UserId);
 
@@ -34,7 +33,25 @@ namespace Jewellery.Infrastructure.Master.Repositories
                 commandType: CommandType.StoredProcedure
             );
 
-            var summaryCards = await result.ReadAsync<dynamic>();
+            // The SP returns a single result set with (Code, Message) and exits early
+            // when the user is not authorized for /dashboard — read the first
+            // recordset generically and check for that shape before assuming the
+            // normal 6-result-set dashboard payload follows.
+            var firstSet = (await result.ReadAsync<dynamic>()).ToList();
+
+            var firstRow = firstSet.FirstOrDefault() as IDictionary<string, object>;
+            if (firstRow != null && firstRow.ContainsKey("Code") && firstRow.ContainsKey("Message"))
+            {
+                return new
+                {
+                    Authorized = false,
+                    Message = firstRow["Message"]?.ToString()
+                };
+            }
+
+            // Authorized — firstSet is actually SummaryCards, continue reading the
+            // remaining 5 result sets in the order the SP returns them.
+            var summaryCards = firstSet;
             var metalSummary = await result.ReadAsync<dynamic>();
             var lowStockItems = await result.ReadAsync<dynamic>();
             var recentTransactions = await result.ReadAsync<dynamic>();
@@ -43,6 +60,7 @@ namespace Jewellery.Infrastructure.Master.Repositories
 
             return new
             {
+                Authorized = true,
                 SummaryCards = summaryCards,
                 MetalSummary = metalSummary,
                 LowStockItems = lowStockItems,
