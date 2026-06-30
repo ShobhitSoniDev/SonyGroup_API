@@ -58,6 +58,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@BillNo", model.BillNo);
             parameters.Add("@BillDate", model.BillDate);
             parameters.Add("@CustomerId", model.CustomerId);
+            parameters.Add("@CustomerType", model.CustomerType);
             parameters.Add("@TotalAmount", model.TotalAmount);
             parameters.Add("@GSTAmount", model.GSTAmount);
             parameters.Add("@PaidAmount", model.PaidAmount);
@@ -69,6 +70,8 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             // Convert Detail List to JSON
             parameters.Add("@DetailsJson",
                 JsonConvert.SerializeObject(model.Details));
+            parameters.Add("@OldJewelleryJson",
+                JsonConvert.SerializeObject(model.OldJewelleryDetails));
 
             using var result = await connection.QueryMultipleAsync(
                 "Jewellery.Sales_Manage",
@@ -85,6 +88,18 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
                 {
                     Header = header,
                     Details = details
+                };
+            }
+            else if (model.TypeId == 6) // TypeId = 6 (Select) returns multiple result sets for Print
+            {
+                var header = await result.ReadAsync<dynamic>();
+                var details = await result.ReadAsync<dynamic>();
+                var oldJewellery = await result.ReadAsync<dynamic>();
+                return new
+                {
+                    Header = header,
+                    Details = details,
+                    oldJewellery = oldJewellery
                 };
             }
 

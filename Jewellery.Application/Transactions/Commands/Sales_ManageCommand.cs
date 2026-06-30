@@ -13,6 +13,7 @@ namespace Jewellery.Application.Transactions.Commands
         public string BillNo { get; set; } = "";
         public DateTime? BillDate { get; set; }
         public int CustomerId { get; set; }
+        public string CustomerType { get; set; } = "";
         public decimal TotalAmount { get; set; }
         public decimal GSTAmount { get; set; }
         public decimal PaidAmount { get; set; }
@@ -23,6 +24,7 @@ namespace Jewellery.Application.Transactions.Commands
 
         // Details
         public List<SalesDetailModel> DetailsJson { get; set; } = new();
+        public List<OldJewelleryModel> OldJewelleryJson { get; set; } = new();
     }
 
     public class Sales_ManageCommandHandler
@@ -103,6 +105,7 @@ namespace Jewellery.Application.Transactions.Commands
                     BillNo = request.BillNo,
                     BillDate = request.BillDate,
                     CustomerId = request.CustomerId,
+                    CustomerType=request.CustomerType,
                     TotalAmount = request.TotalAmount,
                     GSTAmount = request.GSTAmount,
                     PaidAmount = request.PaidAmount,
@@ -110,7 +113,8 @@ namespace Jewellery.Application.Transactions.Commands
                     Remarks = request.Remarks,
                     TypeId = request.TypeId,
                     IsActive=request.IsActive,
-                    Details = request.DetailsJson
+                    Details = request.DetailsJson,
+                    OldJewelleryDetails=request.OldJewelleryJson,
                 };
 
                 var result = await _transactionsRepository.Sales_ManageAsync(model);
