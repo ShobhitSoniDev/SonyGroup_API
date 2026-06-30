@@ -32,6 +32,7 @@ namespace Jewellery.Domain.Entities
         public int Quantity { get; set; }
         public decimal GrossWeight { get; set; }
         public decimal NetWeight { get; set; }
+        public string MetalType { get; set; } = "GOLD";   // GOLD (/10gm) or SILVER (/kg)
         public decimal Touch { get; set; }
         public decimal PureWeight { get; set; }
         public decimal MetalRate { get; set; }
@@ -44,9 +45,10 @@ namespace Jewellery.Domain.Entities
     public class OldJewelleryModel
     {
         public int OldJewelDetailId { get; set; }
-        public int SaleId { get; set; }       
+        public int SaleId { get; set; }
         public string ItemDescription { get; set; }
         public decimal GrossWeight { get; set; }
+        public string MetalType { get; set; } = "GOLD";   // GOLD (/10gm) or SILVER (/kg)
         public decimal? Touch { get; set; }             // HOLESALE only
         public decimal? DeductionWeight { get; set; }    // HOLESALE only
         public decimal? PureWeight { get; set; }         // HOLESALE only

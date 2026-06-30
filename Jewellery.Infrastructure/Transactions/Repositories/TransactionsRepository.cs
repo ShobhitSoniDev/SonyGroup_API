@@ -79,18 +79,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
                 commandType: CommandType.StoredProcedure);
 
             // TypeId = 4 (Select) returns multiple result sets
-            if (model.TypeId == 4)
-            {
-                var header = await result.ReadAsync<dynamic>();
-                var details = await result.ReadAsync<dynamic>();
-
-                return new
-                {
-                    Header = header,
-                    Details = details
-                };
-            }
-            else if (model.TypeId == 6) // TypeId = 6 (Select) returns multiple result sets for Print
+            if (model.TypeId == 6 || model.TypeId == 4) // TypeId = 6 (Select) returns multiple result sets for Print
             {
                 var header = await result.ReadAsync<dynamic>();
                 var details = await result.ReadAsync<dynamic>();
@@ -128,6 +117,9 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add(
                 "@DetailsJson",
                 JsonConvert.SerializeObject(model.DetailsJson));
+            parameters.Add(
+                "@OldJewelleryJson",
+                JsonConvert.SerializeObject(model.OldJewelleryJson));
 
             using var result = await connection.QueryMultipleAsync(
                 "Jewellery.Purchase_Manage",
@@ -139,11 +131,12 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             {
                 var header = await result.ReadAsync<dynamic>();
                 var details = await result.ReadAsync<dynamic>();
-
+                var oldJewellery = await result.ReadAsync<dynamic>();
                 return new
                 {
                     Header = header,
-                    Details = details
+                    Details = details,
+                    oldJewellery= oldJewellery
                 };
             }
 

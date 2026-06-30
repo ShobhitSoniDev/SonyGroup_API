@@ -21,6 +21,7 @@ namespace Jewellery.Application.Transactions.Commands
 
         // Purchase Details
         public List<PurchaseDetailModel> DetailsJson { get; set; } = new();
+        public List<PurchaseOldJewelleryModel> OldJewelleryJson { get; set; } = new();
     }
 
     public class Purchase_ManageCommandHandler
@@ -117,7 +118,8 @@ namespace Jewellery.Application.Transactions.Commands
                     IsActive = request.IsActive,
                     CreatedBy = _currentUserService.UserName,
                     TypeId = request.TypeId,
-                    DetailsJson = request.DetailsJson
+                    DetailsJson = request.DetailsJson,
+                    OldJewelleryJson = request.OldJewelleryJson
                 };
 
                 var result = await _transactionsRepository.Purchase_ManageAsync(model);
