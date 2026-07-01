@@ -21,7 +21,6 @@ namespace Jewellery.Application.Transactions.Commands
         public DateTime? TransactionDate { get; set; }
         public decimal Amount { get; set; }
         public string? Description { get; set; }
-        public string? CreatedBy { get; set; }
         public string TypeId { get; set; } = string.Empty;
     }
     public class LoanTransactionsDetail_ManageCommandHandler
@@ -71,7 +70,6 @@ namespace Jewellery.Application.Transactions.Commands
                     TransactionDate = request.TransactionDate?.ToString("yyyy-MM-dd"),
                     Amount = request.Amount,
                     Description = request.Description,
-                    CreatedBy = request.CreatedBy,
                     TypeId = request.TypeId
                 };
 

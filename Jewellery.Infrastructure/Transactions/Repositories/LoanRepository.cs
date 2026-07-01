@@ -67,7 +67,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@TransactionDate", transaction.TransactionDate);
             parameters.Add("@Amount", transaction.Amount);
             parameters.Add("@Description", transaction.Description);
-            parameters.Add("@UserId", transaction.CreatedBy);
+            parameters.Add("@UserId", _currentUser.UserId);
             parameters.Add("@TypeId", transaction.TypeId);
 
             var result = await connection.QueryAsync(
