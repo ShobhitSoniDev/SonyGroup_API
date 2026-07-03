@@ -21,6 +21,32 @@ public class AuthController : BaseApiController
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
         var result = await _mediator.Send(command);
+
+        if (result.Code == 1 && result.Data != null)
+        {
+            string token = null;
+
+            if (result.Data is IDictionary<string, object> dataDict)
+            {
+                if (dataDict.TryGetValue("token", out var tokenValue))
+                {
+                    token = tokenValue?.ToString();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                Response.Cookies.Append("token", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddDays(1),
+                    Path = "/"
+                });
+            }
+        }
+
         return Ok(result);
     }
     [HttpPost("logout")]
