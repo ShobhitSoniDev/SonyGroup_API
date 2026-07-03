@@ -22,7 +22,7 @@ namespace Jewellery.Infrastructure.Master.Repositories
         // 🔥 INSERT + RETURN INSERTED ROW (DYNAMIC)
         public async Task<dynamic> FAQMaster_ManageAndReturnAsync(FAQMasterModel model)
         {
-            using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
             var parameters = new DynamicParameters();
             parameters.Add("@Id", model.Id);
             parameters.Add("@Question", model.Question);

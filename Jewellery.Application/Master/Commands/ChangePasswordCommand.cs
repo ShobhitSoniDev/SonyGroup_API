@@ -1,4 +1,5 @@
-﻿using Jewellery.Application.Master.Interfaces;
+﻿using Jewellery.Application.Common.Security;
+using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
 using Jewellery.Domain.Entities;
 using MediatR;
@@ -23,11 +24,13 @@ namespace Jewellery.Application.Master.Commands
     {
         private readonly IMasterRepository _masterRepository;
         private readonly IErrorLogRepository _errorLogRepository;
+        private readonly PasswordSecurityHelper _passSecurity;
         public ChangePasswordCommandHandler(
-            IMasterRepository masterRepository,IErrorLogRepository errorLogRepository)
+            IMasterRepository masterRepository,IErrorLogRepository errorLogRepository, PasswordSecurityHelper passSecurity)
         {
             _masterRepository = masterRepository;
             _errorLogRepository = errorLogRepository;
+            _passSecurity = passSecurity;
         }
 
         public async Task<ResponseModel> Handle(
@@ -56,9 +59,18 @@ namespace Jewellery.Application.Master.Commands
                 string CurrentPasswordHash = "";
                 string NewPasswordHash = "";
                 var hasher = new PasswordHasher<string>();
+                if(request.CurrentPassword== request.NewPassword)
+                {
+                    return new ResponseModel
+                    {
+                        Code = 0,
+                        Message = "The new password must be different from the old password.",
+                        Data = null
+                    };
+                }
 
-                CurrentPasswordHash = hasher.HashPassword(null, request.CurrentPassword);
-                NewPasswordHash = hasher.HashPassword(null, request.NewPassword);
+                CurrentPasswordHash = _passSecurity.Encrypt(request.CurrentPassword);
+                NewPasswordHash = _passSecurity.Encrypt(request.NewPassword);
                 var model = new ChangePasswordModel
                 {
                     CurrentPasswordHash = CurrentPasswordHash,
@@ -72,8 +84,7 @@ namespace Jewellery.Application.Master.Commands
                     IDictionary<string, object> row = result;
                     string passwordHashdb = row.ContainsKey("PasswordHash")
                         ? row["PasswordHash"]?.ToString() ?? "" : "";
-                    var verify = hasher.VerifyHashedPassword(null, passwordHashdb, request.CurrentPassword);
-                    if (verify == PasswordVerificationResult.Success)
+                    if (passwordHashdb == CurrentPasswordHash)
                     {
                         var model_ = new ChangePasswordModel
                         {
@@ -85,7 +96,7 @@ namespace Jewellery.Application.Master.Commands
                         return new ResponseModel
                         {
                             Code = 1,
-                            Message = "SUCCESS",
+                            Message = "Password updated successfully.",
                             Data = update
                         };
                     }
@@ -93,8 +104,8 @@ namespace Jewellery.Application.Master.Commands
                     {
                         return new ResponseModel
                         {
-                            Code = 1,
-                            Message = "SUCCESS",
+                            Code = 0,
+                            Message = "The old password does not match.",
                             Data = result
                         };
                     }
@@ -103,7 +114,7 @@ namespace Jewellery.Application.Master.Commands
                 {
                     return new ResponseModel
                     {
-                        Code = 1,
+                        Code = 0,
                         Message = "SUCCESS",
                         Data = result
                     };
