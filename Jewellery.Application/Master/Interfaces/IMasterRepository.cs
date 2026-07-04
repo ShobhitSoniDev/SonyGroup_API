@@ -11,6 +11,7 @@ namespace Jewellery.Application.Master.Interfaces
         Task<dynamic> User_ManageAsync(UserModel model);
         Task<dynamic> Supplier_ManageAsync(SupplierModel model);
         Task<dynamic> ProductMaster_ManageAsync(ProductMasterModel product);
+        Task<dynamic> ShopMaster_ManageAsync(ShopModel shop);
     }  
 }
 
