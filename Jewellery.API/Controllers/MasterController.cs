@@ -84,5 +84,11 @@ namespace Jewellery.API.Controllers.Master
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+        [HttpPost("ShopMaster_Manage")]
+        public async Task<IActionResult> ShopMaster_Manage([FromBody] ShopMaster_ManageCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
     }
 }
