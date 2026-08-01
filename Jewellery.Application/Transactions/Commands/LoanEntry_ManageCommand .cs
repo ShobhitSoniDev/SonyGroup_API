@@ -44,13 +44,14 @@ namespace Jewellery.Application.Transactions.Commands
         : IRequestHandler<LoanEntry_ManageCommand, ResponseModel>
     {
         private readonly ILoanRepository _loanRepository;
-        private readonly IBlobStorageService _blobStorageService;
+        //private readonly IBlobStorageService _blobStorageService;
         private readonly IErrorLogRepository _errorLogRepository;
-        public LoanEntry_ManageCommandHandler(ILoanRepository loanRepository, IBlobStorageService blobStorageService, IErrorLogRepository errorLogRepository)
+        private readonly ICloudinaryStorageService _cloudinaryStorageService;
+        public LoanEntry_ManageCommandHandler(ILoanRepository loanRepository,  IErrorLogRepository errorLogRepository, ICloudinaryStorageService cloudinaryStorageService)
         {
             _loanRepository = loanRepository;
-            _blobStorageService = blobStorageService;
             _errorLogRepository = errorLogRepository;
+            _cloudinaryStorageService = cloudinaryStorageService;
         }
 
         public async Task<ResponseModel> Handle(LoanEntry_ManageCommand request, CancellationToken cancellationToken)
@@ -132,7 +133,9 @@ namespace Jewellery.Application.Transactions.Commands
 
                         // ☁️ CALL AZURE BLOB METHOD
                         string FileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-                        var uploadResult = await _blobStorageService.UploadFileAsync(file, FileName, folderName, 0, 1, 0); // Second , Minute ,Hour
+                        //var uploadResult = await _blobStorageService.UploadFileAsync(file, FileName, folderName, 0, 1, 0); // Second , Minute ,Hour
+
+                        var uploadResult = await _cloudinaryStorageService.UploadFileAsync(file, FileName, folderName, 0, 1, 0); // Second , Minute ,Hour
 
                         if (uploadResult.Success)
                         {
@@ -177,20 +180,40 @@ namespace Jewellery.Application.Transactions.Commands
                     {
                         foreach (var photoName in loan.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries))
                         {
-                            var file = await _blobStorageService.GetFileUrl(
-                                photoName.Trim(),
-                                folderName,
-                                0,
-                                5,
-                                0
-                            );
+                            //var file = await _blobStorageService.GetFileUrl(
+                            //    photoName.Trim(),
+                            //    folderName,
+                            //    0,
+                            //    5,
+                            //    0
+                            //);
+                            var files = _cloudinaryStorageService.GetFileUrl(photoName.Trim());
 
-                            photoUrls.Add(file.Item2);
+                            photoUrls.Add(files);
                         }
                     }
 ((IDictionary<string, object>)loan)["PhotoUrls"] = photoUrls;
 
                 }
+                if (request.TypeId == "4" && result != null && result.Count > 0)
+                {
+                    foreach (var loan in (IEnumerable<dynamic>)result)
+                    {
+                        var photoUrls = new List<string>();
+
+                        if (!string.IsNullOrWhiteSpace(loan.Photos))
+                        {
+                            foreach (var photoName in loan.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                var files = _cloudinaryStorageService.GetFileUrl(photoName.Trim());
+                                photoUrls.Add(files);
+                            }
+                        }
+
+                        ((IDictionary<string, object>)loan)["PhotoUrls"] = photoUrls;
+                    }
+                }
+
                 return new ResponseModel
                 {
                     Code = result != null ? 1 : 0,

@@ -36,19 +36,19 @@ namespace Jewellery.Application.Master.Commands
         : IRequestHandler<CustomerBillGenerateCommand, ResponseModel>
     {
         private readonly IReportsRepository _reportsRepository;
-        private readonly IBlobStorageService _blobStorageService;
+        //private readonly IBlobStorageService _blobStorageService;
         private readonly IErrorLogRepository _errorLogRepository;
+        private readonly ICloudinaryStorageService _cloudinaryStorageService;
         public CustomerBillGenerateCommandHandler(
             IReportsRepository customerRepository,
-            IBlobStorageService blobStorageService,
-            IErrorLogRepository errorLogRepository)
+            IErrorLogRepository errorLogRepository,
+            ICloudinaryStorageService cloudinaryStorageService)
         {
             _reportsRepository = customerRepository;
-            _blobStorageService = blobStorageService;
-
             // QuestPDF Community license — free for commercial use
             QuestPDF.Settings.License = LicenseType.Community;
             _errorLogRepository = errorLogRepository;
+            _cloudinaryStorageService = cloudinaryStorageService;
         }
 
         public async Task<ResponseModel> Handle(
@@ -107,11 +107,30 @@ namespace Jewellery.Application.Master.Commands
                 // ── Step 4 : Upload to blob ───────────────────────────────────
                 var fileName = $"{Guid.NewGuid()}.pdf";
 
-                var uploadResult = await _blobStorageService.UploadFileAsync(
-                    null, fileName, billBlobFolder, 0, 1, 0, pdfBytes, "application/pdf");
+                //var uploadResult = await _blobStorageService.UploadFileAsync(
+                //    null, fileName, billBlobFolder, 0, 1, 0, pdfBytes, "application/pdf");
 
-                if (!uploadResult.Success)
-                    return new ResponseModel { Code = 0, Message = "Upload failed.", Data = null };
+
+                //var uploadResult = await _cloudinaryStorageService.UploadFileAsync(null, fileName, billBlobFolder, 0, 1, 0, pdfBytes, "application/pdf"); // Second , Minute ,Hour
+
+                //if (!uploadResult.Success)
+                //    return new ResponseModel { Code = 0, Message = "Upload failed.", Data = null };
+
+
+                // Folder path
+                string FolderName = "CustomerBills";
+                string uploadFolder = Path.Combine(Directory.GetCurrentDirectory(),FolderName);
+
+                // Create folder if not exists
+                if (!Directory.Exists(uploadFolder))
+                {
+                    Directory.CreateDirectory(uploadFolder);
+                }
+
+                string filePath = Path.Combine(uploadFolder, fileName);
+
+                // Save file
+                File.WriteAllBytes(filePath, pdfBytes);
 
                 // ── Step 5 : Save bill history ────────────────────────────────
                 var billGenerateSave = new BillGenerateHistoryModel
@@ -120,7 +139,8 @@ namespace Jewellery.Application.Master.Commands
                     BillGenerateId = null,
                     CustomerCode = request.CustomerCode,
                     BillNo = billNo,
-                    FilePath = billBlobFolder + "/" + fileName,
+                    //FilePath = billBlobFolder + "/" + fileName,
+                    FilePath = FolderName + "/" + fileName,
                     Description = request.Description,
                     LanguageType = (int)request.Language,
                 };
@@ -131,7 +151,7 @@ namespace Jewellery.Application.Master.Commands
                 {
                     Code = 1,
                     Message = "SUCCESS",
-                    Data = uploadResult.FileUrl
+                    Data = filePath
                 };
             }
             catch (Exception ex)
