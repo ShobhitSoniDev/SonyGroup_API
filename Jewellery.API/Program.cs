@@ -104,9 +104,7 @@ builder.Services.AddScoped<IDAL, DAL>();
 builder.Services.AddScoped<IErrorLogRepository, ErrorLogRepository>();
 
 // Auth
-builder.Services.AddScoped<ILoginRepository, LoginRepository>();
-builder.Services.AddScoped<ISignUpRepository, SignUpRepository>();
-builder.Services.AddScoped<IGetMenuRepository, GetMenuRepository>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 // Master
 builder.Services.AddScoped<IMetalRepository, MetalRepository>();

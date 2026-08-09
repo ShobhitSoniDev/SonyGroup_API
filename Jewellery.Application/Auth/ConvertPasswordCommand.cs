@@ -24,13 +24,11 @@ namespace Jewellery.Application.Auth
     public class ConvertPasswordCommandHandler
      : IRequestHandler<ConvertPasswordCommand, ResponseModel>
     {
-        private readonly ILoginRepository _loginRepository;
         private readonly JwtTokenService _jwtService;
         private readonly PasswordSecurityHelper _passSecurity;
         private readonly IErrorLogRepository _errorLogRepository;
-        public ConvertPasswordCommandHandler(ILoginRepository loginRepository, JwtTokenService jwtService, PasswordSecurityHelper passSecurity, IErrorLogRepository errorLogRepository)
+        public ConvertPasswordCommandHandler(JwtTokenService jwtService, PasswordSecurityHelper passSecurity, IErrorLogRepository errorLogRepository)
         {
-            _loginRepository = loginRepository;
             _jwtService = jwtService;
             _passSecurity = passSecurity;
             _errorLogRepository = errorLogRepository;
