@@ -1,11 +1,13 @@
 ﻿using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Common.Security;
+using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,7 +15,7 @@ using System.Threading.Tasks;
 namespace Jewellery.Application.Auth
 {
     // ✅ Command
-    public class SignUpCommand : IRequest<ResponseModel>
+    public class SignUpCustomerCommand : IRequest<ResponseModel>
     {
         public string UserName { get; set; } = "";
         public string Email { get; set; } = "";
@@ -25,22 +27,25 @@ namespace Jewellery.Application.Auth
     }
 
     // ✅ Handler
-    public class SignUpCommandHandler
-     : IRequestHandler<SignUpCommand, ResponseModel>
+    public class SignUpCustomerCommandHandler
+     : IRequestHandler<SignUpCustomerCommand, ResponseModel>
     {
         private readonly IAuthRepository _authRepository;
         private readonly JwtTokenService _jwtService;
         private readonly PasswordSecurityHelper _passSecurity;
-        public SignUpCommandHandler(IAuthRepository authRepository, JwtTokenService jwtService, PasswordSecurityHelper passSecurity)
+        private readonly IErrorLogRepository _errorLogRepository;
+        public SignUpCustomerCommandHandler(IAuthRepository authRepository, JwtTokenService jwtService, PasswordSecurityHelper passSecurity, IErrorLogRepository errorLogRepository)
         {
             _authRepository = authRepository;
             _jwtService = jwtService;
             _passSecurity = passSecurity;
+            _errorLogRepository = errorLogRepository;
         }
 
-        public async Task<ResponseModel> Handle(SignUpCommand request, CancellationToken cancellationToken)
+        public async Task<ResponseModel> Handle(SignUpCustomerCommand request, CancellationToken cancellationToken)
         {
-            request.shopCode = "JWL_" + request.shopCode;
+            try
+            {
             string hashedPassword = "";
             var hasher = new PasswordHasher<string>();
             var error = CommonInputValidator.Validate(value: request.UserName, numeric: false, minLength: 2, maxLength: 20);
@@ -51,9 +56,9 @@ namespace Jewellery.Application.Auth
                 //error = CommonInputValidator.Validate(value: request.Email, numeric: false, minLength: 2, maxLength: 20);
                 //if (error.Code == 0)
                 //    return error;
-                error = CommonInputValidator.Validate(value: request.Password, numeric: false, minLength: 2, maxLength: 20);
-                if (error.Code == 0)
-                    return error;
+                //error = CommonInputValidator.Validate(value: request.Password, numeric: false, minLength: 2, maxLength: 20);
+                //if (error.Code == 0)
+                //    return error;
                 error = CommonInputValidator.Validate(value: request.MobileNo, numeric: false, minLength: 2, maxLength: 20);
                 if (error.Code == 0)
                     return error;
@@ -63,7 +68,15 @@ namespace Jewellery.Application.Auth
                 error = CommonInputValidator.Validate(value: request.Password, numeric: false, minLength: 2, maxLength: 20);
                 if (error.Code == 0)
                     return error;
-                var LoginResponse = await _authRepository.LoginReturnAsync(request.UserName, request.shopCode);
+                var LoginResponse = await _authRepository.LoginCustomerReturnAsync(request.UserName, request.shopCode);
+                if(LoginResponse.RoleName.ToLower() != "customer")
+                {
+                    return new ResponseModel
+                    {
+                        Code = 0,
+                        Message = "Invalid Role."
+                    };
+                }
                 var pass = LoginResponse.PasswordHash;
                 var result = _passSecurity.Encrypt(request.OldPassword);
                 if (result != pass)
@@ -79,7 +92,7 @@ namespace Jewellery.Application.Auth
             {
                 hashedPassword = _passSecurity.Encrypt(request.Password);
             }
-            var SignUpResponse = await _authRepository.SignUpReturnAsync(request.UserName, request.Email, hashedPassword, request.MobileNo, request.Type, request.shopCode, "");
+            var SignUpResponse = await _authRepository.SignUpReturnAsync(request.UserName, request.Email, hashedPassword, request.MobileNo, request.Type, request.shopCode,"Customer");
 
             if (SignUpResponse != null)
             {
@@ -97,6 +110,30 @@ namespace Jewellery.Application.Auth
                 {
                     Code = 1,
                     Message = "User Name is Incorrect."
+                };
+            }
+            }
+            catch (Exception ex)
+            {
+                var stackTrace = new StackTrace(ex, true);
+                var frame = stackTrace.GetFrame(0);
+
+                int? lineNumber = frame?.GetFileLineNumber();
+                string? stackTraceText = ex.StackTrace;
+                var errorLog = new ErrorLog
+                {
+                    ApiName = "LoginCustomerCommandHandler",
+                    ErrorMessage = ex.Message,
+                    StackTrace = stackTraceText,
+                    LineNumber = lineNumber ?? 0,
+                    CreatedDate = DateTime.Now
+                };
+                // ✅ Save Log in DB (via Infrastructure)
+                _errorLogRepository.SaveErrorAsync(errorLog);
+                return new ResponseModel
+                {
+                    Code = 0,
+                    Message = "Something went wrong. Please try again later."
                 };
             }
         }

@@ -67,4 +67,43 @@ public class AuthController : BaseApiController
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+
+    [HttpPost("loginCustomer")]
+    public async Task<IActionResult> loginCustomer([FromBody] LoginCustomerCommand command)
+    {
+        var result = await _mediator.Send(command);
+
+        if (result.Code == 1 && result.Data != null)
+        {
+            string token = null;
+
+            if (result.Data is IDictionary<string, object> dataDict)
+            {
+                if (dataDict.TryGetValue("token", out var tokenValue))
+                {
+                    token = tokenValue?.ToString();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                Response.Cookies.Append("token", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTimeOffset.UtcNow.AddDays(1),
+                    Path = "/"
+                });
+            }
+        }
+
+        return Ok(result);
+    }
+    [HttpPost("signupCustomer")]
+    public async Task<IActionResult> SignUpCustomer([FromBody] SignUpCustomerCommand command)
+    {
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
 }

@@ -1,6 +1,7 @@
 ﻿using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
+using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
 using MediatR;
 using System.Diagnostics;
@@ -19,11 +20,11 @@ namespace Jewellery.Application.Master.Commands
     public class GetMenuQueryHandler
         : IRequestHandler<GetMenuQuery, ResponseModel>
     {
-        private readonly IGetMenuRepository _getMenuRepository;
+        private readonly IAuthRepository _authRepository;
         private readonly IErrorLogRepository _errorLogRepository;
-        public GetMenuQueryHandler(IGetMenuRepository getMenuRepository, IErrorLogRepository errorLogRepository)
+        public GetMenuQueryHandler(IAuthRepository authRepository, IErrorLogRepository errorLogRepository)
         {
-            _getMenuRepository = getMenuRepository;
+            _authRepository = authRepository;
             _errorLogRepository= errorLogRepository;
         }
 
@@ -31,7 +32,7 @@ namespace Jewellery.Application.Master.Commands
         {
             try
             {
-                var GetMenu = await _getMenuRepository.GetMenuReturnAsync();
+                var GetMenu = await _authRepository.GetMenuReturnAsync();
                 if (GetMenu != null)
                 {
                     return new ResponseModel

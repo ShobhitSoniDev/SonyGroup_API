@@ -15,22 +15,23 @@ using System.Threading.Tasks;
 namespace Jewellery.Application.Auth
 {
     // ✅ Command
-    public class LoginCommand : IRequest<ResponseModel>
+    public class LoginCustomerCommand : IRequest<ResponseModel>
     {
-        public string username { get; set; }
+        public string username { get; set; } = "";
+        public string mobile { get; set; }
         public string password { get; set; }
         public string shopCode { get; set; } = "JS0000";
     }
 
     // ✅ Handler
-    public class LoginCommandHandler
-     : IRequestHandler<LoginCommand, ResponseModel>
+    public class LoginCustomerCommandHandler
+     : IRequestHandler<LoginCustomerCommand, ResponseModel>
     {
         private readonly IAuthRepository _authRepository;
         private readonly JwtTokenService _jwtService;
         private readonly PasswordSecurityHelper _passSecurity;
         private readonly IErrorLogRepository _errorLogRepository;
-        public LoginCommandHandler(IAuthRepository authRepository, JwtTokenService jwtService, PasswordSecurityHelper passSecurity,IErrorLogRepository errorLogRepository)
+        public LoginCustomerCommandHandler(IAuthRepository authRepository, JwtTokenService jwtService, PasswordSecurityHelper passSecurity,IErrorLogRepository errorLogRepository)
         {
             _authRepository = authRepository;
             _jwtService = jwtService;
@@ -38,11 +39,12 @@ namespace Jewellery.Application.Auth
             _errorLogRepository = errorLogRepository;
         }
 
-        public async Task<ResponseModel> Handle(LoginCommand request, CancellationToken cancellationToken)
+        public async Task<ResponseModel> Handle(LoginCustomerCommand request, CancellationToken cancellationToken)
         {
             try
             {
                 // 🔥 INSERT + RETURN ROW (dynamic)
+                request.username = request.mobile;
                 var error = CommonInputValidator.Validate(value: request.username, numeric: false, minLength: 2, maxLength: 20);
                 if (error.Code == 0)
                     return error;
@@ -51,7 +53,7 @@ namespace Jewellery.Application.Auth
                 //    return error;
                 string SC= request.shopCode;
                 request.shopCode = "JWL_" + request.shopCode;
-                var LoginResponse = await _authRepository.LoginReturnAsync(request.username, request.shopCode);
+                var LoginResponse = await _authRepository.LoginCustomerReturnAsync(request.username, request.shopCode);
                 if (LoginResponse != null)
                 {
                     var pass = LoginResponse.PasswordHash;
@@ -99,7 +101,7 @@ namespace Jewellery.Application.Auth
                 string? stackTraceText = ex.StackTrace;
                 var errorLog = new ErrorLog
                 {
-                    ApiName = "LoginCommandHandler",
+                    ApiName = "LoginCustomerCommandHandler",
                     ErrorMessage = ex.Message,
                     StackTrace = stackTraceText,
                     LineNumber = lineNumber ?? 0,
