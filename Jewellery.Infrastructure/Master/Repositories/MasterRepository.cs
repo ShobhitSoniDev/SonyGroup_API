@@ -164,5 +164,25 @@ namespace Jewellery.Infrastructure.Master.Repositories
 
             return await result.ReadAsync<dynamic>();
         }
+        public async Task<dynamic> CustomerMaster_ManageAsync(CustomerMasterModel customer)
+        {
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+            //using var connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", _currentUser.UserId);
+            parameters.Add("@CustomerCode", customer.CustomerCode);
+            parameters.Add("@CustomerName", customer.CustomerName);
+            parameters.Add("@MobileNo", customer.MobileNo);
+            parameters.Add("@Email", customer.Email);
+            parameters.Add("@Address", customer.Address);
+            parameters.Add("@City", customer.City);
+            parameters.Add("@Pincode", customer.Pincode);
+            parameters.Add("@TypeId", customer.TypeId);
+
+            var result = await connection.QueryAsync("Jewellery.CustomerMaster_Manage", parameters, commandType: CommandType.StoredProcedure);
+
+            return result;
+        }
     }
 }

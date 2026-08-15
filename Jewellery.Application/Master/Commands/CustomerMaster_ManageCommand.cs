@@ -26,11 +26,11 @@ namespace Jewellery.Application.Master.Commands
     public class CustomerMaster_ManageCommandHandler
         : IRequestHandler<CustomerMaster_ManageCommand, ResponseModel>
     {
-        private readonly ICustomerRepository _customerRepository;
+        private readonly IMasterRepository _masterRepository;
         private readonly IErrorLogRepository _errorLogRepository;
-        public CustomerMaster_ManageCommandHandler(ICustomerRepository customerRepository, IErrorLogRepository errorLogRepository)
+        public CustomerMaster_ManageCommandHandler(IMasterRepository masterRepository, IErrorLogRepository errorLogRepository)
         {
-            _customerRepository = customerRepository;
+            _masterRepository = masterRepository;
             _errorLogRepository = errorLogRepository;
         }
 
@@ -63,7 +63,7 @@ namespace Jewellery.Application.Master.Commands
                     Pincode = request.Pincode,
                     TypeId = request.TypeId
                 };
-                var insertedproduct = await _customerRepository.CustomerMaster_ManageAsync(customermodel);
+                var insertedproduct = await _masterRepository.CustomerMaster_ManageAsync(customermodel);
                 if (insertedproduct != null)
                 {
                     return new ResponseModel
