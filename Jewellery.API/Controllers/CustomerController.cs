@@ -1,5 +1,6 @@
 ﻿using Jewellery.API.Filters;
 using Jewellery.Application.Master.Commands;
+using Jewellery.Application.Master.Queries;
 using Jewellery.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -31,8 +32,20 @@ namespace Jewellery.API.Controllers.Master
             var result = await _mediator.Send(command);
             return Ok(result);
         }
-        [HttpPost("Product_Images_Manage")]
-        public async Task<IActionResult> Product_Images_Manage([FromForm] ProductImages_ManageCommand command)
+        [HttpPost("GetOnline_ProductList")]
+        public async Task<IActionResult> GetOnline_ProductList([FromBody] GetOnline_ProductListCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpGet("GetOnline_ProductByProductId")]
+        public async Task<IActionResult> GetOnline_ProductByProductId([FromQuery] GetOnline_ProductByProductIdQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+        [HttpPost("Customer_Wishlist_Manage")]
+        public async Task<IActionResult> Customer_Wishlist_Manage([FromBody] CustomerWishlist_ManageCommand command)
         {
             var result = await _mediator.Send(command);
             return Ok(result);
