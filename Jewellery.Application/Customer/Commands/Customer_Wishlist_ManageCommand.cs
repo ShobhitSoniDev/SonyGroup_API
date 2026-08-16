@@ -15,9 +15,6 @@ namespace Jewellery.Application.Master.Commands
     public class CustomerWishlist_ManageCommand : IRequest<ResponseModel>
     {
         public int TypeId { get; set; }
-
-        public int CustomerId { get; set; } = 0;
-
         public int? ProductId { get; set; }
     }
 
@@ -84,7 +81,6 @@ namespace Jewellery.Application.Master.Commands
                 var model = new CustomerWishlistManageModel
                 {
                     TypeId = request.TypeId,
-                    CustomerId = request.CustomerId,
                     ProductId = request.ProductId
                 };
 

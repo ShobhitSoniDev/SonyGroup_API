@@ -33,7 +33,6 @@ namespace Jewellery.Domain.Entities
     }
     public class CartManageRequest
     {
-        public int CustomerId { get; set; }
         public int ProductId { get; set; }
         public int Quantity { get; set; }
         public int TypeId { get; set; } = 0;

@@ -1,6 +1,7 @@
 ﻿using Jewellery.Application.Auth.Interfaces;
 using Jewellery.Application.Master.Interfaces;
 using Jewellery.Application.Master.Models;
+using Jewellery.Application.Services.Interfaces;
 using Jewellery.Application.Transactions.Interfaces;
 using Jewellery.Domain.Entities;
 using MediatR;
@@ -13,7 +14,6 @@ namespace Jewellery.Application.Master.Commands
     // ✅ Command
     public class Customer_Cart_ManageCommand : IRequest<ResponseModel>
     {
-        public int CustomerId { get; set; } = 0;
         public int ProductId { get; set; } = 0;
         public int Quantity { get; set; } = 0;
         public int TypeId { get; set; } = 0;
@@ -25,10 +25,12 @@ namespace Jewellery.Application.Master.Commands
     {
         private readonly ICustomerRepository _customerRepository;
         private readonly IErrorLogRepository _errorLogRepository;
-        public Customer_Cart_ManageCommandHandler(ICustomerRepository customerRepository, IErrorLogRepository errorLogRepository)
+        private readonly ICloudinaryStorageService _cloudinaryStorageService;
+        public Customer_Cart_ManageCommandHandler(ICustomerRepository customerRepository, IErrorLogRepository errorLogRepository, ICloudinaryStorageService cloudinaryStorageService)
         {
             _customerRepository = customerRepository;
             _errorLogRepository = errorLogRepository;
+            _cloudinaryStorageService = cloudinaryStorageService;
         }
 
         public async Task<ResponseModel> Handle(Customer_Cart_ManageCommand request, CancellationToken cancellationToken)
@@ -37,14 +39,23 @@ namespace Jewellery.Application.Master.Commands
             {
                 var model = new CartManageRequest
                 {
-                    CustomerId = request.CustomerId,
                     ProductId = request.ProductId,
                     Quantity = request.Quantity,
                     TypeId = request.TypeId
                 };
 
                 var result = await _customerRepository.Customer_Cart_ManageAsync(model);
-
+                if (request.TypeId == 2 && result != null && result.Count > 0)
+                {
+                    foreach (var productimage in (IEnumerable<dynamic>)result)
+                    {
+                        if (!string.IsNullOrWhiteSpace(productimage.PrimaryImage))
+                        {
+                            var files = _cloudinaryStorageService.GetFileUrl(productimage.PrimaryImage.Trim());
+                            ((IDictionary<string, object>)productimage)["PrimaryImageUrl"] = files;
+                        }
+                    }
+                }
                 if (result != null)
                 {
                     return new ResponseModel

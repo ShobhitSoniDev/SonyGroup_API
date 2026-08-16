@@ -56,6 +56,14 @@ namespace Jewellery.Application.Auth
                 var LoginResponse = await _authRepository.LoginCustomerReturnAsync(request.username, request.shopCode);
                 if (LoginResponse != null)
                 {
+                    if (LoginResponse.RoleId != 4)
+                    {
+                        return new ResponseModel
+                        {
+                            Code = 0,
+                            Message = "You have entered an invalid detail."
+                        };
+                    }
                     var pass = LoginResponse.PasswordHash;
                     string  EncryptedPassword = _passSecurity.Encrypt(request.password);
 

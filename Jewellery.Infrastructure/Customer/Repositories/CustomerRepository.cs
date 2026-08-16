@@ -28,7 +28,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
                _configuration.GetConnectionString(_currentUser.shopCode));
             var parameters = new DynamicParameters();
             parameters.Add("@TypeId", request.TypeId);
-            parameters.Add("@CustomerId", _currentUser.UserId);
+            parameters.Add("@CustomerCode", _currentUser.UserId);
             parameters.Add("@ProductId", request.ProductId, DbType.Int32);
             parameters.Add("@Quantity", request.Quantity, DbType.Int32);
 
@@ -155,7 +155,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
 
             var parameters = new DynamicParameters();
             parameters.Add("@TypeId", model.TypeId, DbType.Int32);
-            parameters.Add("@CustomerId", _currentUser.UserId);
+            parameters.Add("@CustomerCode", _currentUser.UserId);
             parameters.Add("@ProductId", model.ProductId, DbType.Int32);
             parameters.Add("@IsAdded", dbType: DbType.Boolean, direction: ParameterDirection.Output);
 
@@ -189,6 +189,23 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
                     Wishlist = null
                 };
             }
+        }
+        public async Task<dynamic> CustomerAddress_ManageAndReturnAsync(CustomerAddressRequest model)
+        {
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+            var parameters = new DynamicParameters();
+            parameters.Add("@TypeId", model.TypeId);
+            parameters.Add("@AddressId", model.AddressId);
+            parameters.Add("@CustomerCode", _currentUser.UserId);
+            parameters.Add("@AddressLabel", model.AddressLabel);
+            parameters.Add("@AddressLine", model.AddressLine);
+            parameters.Add("@City", model.City);
+            parameters.Add("@State", model.State);
+            parameters.Add("@Pincode", model.Pincode);
+            parameters.Add("@IsDefault", model.IsDefault);
+
+            // Stored Procedure MUST return SELECT
+            return await connection.QueryAsync("Jewellery.ManageCustomer_Address", parameters, commandType: CommandType.StoredProcedure);
         }
     }
 }

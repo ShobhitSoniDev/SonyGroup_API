@@ -10,6 +10,7 @@ namespace Jewellery.Application.Transactions.Interfaces
         Task<dynamic> GetOnline_ProductListAsync(GetOnlineProductListModel model);
         Task<OnlineProductDetailResult> GetOnline_ProductByProductIdAsync(int ProductId);
         Task<CustomerWishlistManageResult> Customer_Wishlist_ManageAsync(CustomerWishlistManageModel model);
+        Task<dynamic> CustomerAddress_ManageAndReturnAsync(CustomerAddressRequest model);
     }
 }
 

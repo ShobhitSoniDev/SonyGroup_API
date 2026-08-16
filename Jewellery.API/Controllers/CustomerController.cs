@@ -1,4 +1,5 @@
 ﻿using Jewellery.API.Filters;
+using Jewellery.Application.Customer.Commands;
 using Jewellery.Application.Master.Commands;
 using Jewellery.Application.Master.Queries;
 using Jewellery.Domain.Entities;
@@ -46,6 +47,12 @@ namespace Jewellery.API.Controllers.Master
         }
         [HttpPost("Customer_Wishlist_Manage")]
         public async Task<IActionResult> Customer_Wishlist_Manage([FromBody] CustomerWishlist_ManageCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("ManageCustomer_Address")]
+        public async Task<IActionResult> ManageCustomer_Address([FromBody] ManageCustomer_AddressCommand command)
         {
             var result = await _mediator.Send(command);
             return Ok(result);
