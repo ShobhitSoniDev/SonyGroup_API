@@ -56,7 +56,14 @@ namespace Jewellery.Application.Auth
                 {
                     var pass = LoginResponse.PasswordHash;
                     string  EncryptedPassword = _passSecurity.Encrypt(request.password);
-
+                    if (LoginResponse.RoleId == 4)
+                    {
+                        return new ResponseModel
+                        {
+                            Code = 0,
+                            Message = "You have entered an invalid detail."
+                        };
+                    }
                     if (pass == EncryptedPassword)
                     {
                         var UserId = LoginResponse.UserId.ToString();

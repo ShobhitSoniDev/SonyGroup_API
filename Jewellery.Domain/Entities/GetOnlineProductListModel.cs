@@ -30,8 +30,6 @@ namespace Jewellery.Domain.Entities
     {
         public int TypeId { get; set; }
 
-        public int CustomerId { get; set; }
-
         public int? ProductId { get; set; }
     }
     public class CustomerWishlistManageResult
@@ -39,5 +37,23 @@ namespace Jewellery.Domain.Entities
         public bool IsAdded { get; set; }
 
         public dynamic? Wishlist { get; set; }
+    }
+    public class CustomerAddressRequest
+    {
+        public int TypeId { get; set; }
+
+        public int? AddressId { get; set; }
+
+        public string? AddressLabel { get; set; }
+
+        public string? AddressLine { get; set; }
+
+        public string? City { get; set; }
+
+        public string? State { get; set; }
+
+        public string? Pincode { get; set; }
+
+        public bool IsDefault { get; set; }
     }
 }
