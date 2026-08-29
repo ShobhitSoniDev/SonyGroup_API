@@ -137,6 +137,7 @@ builder.Services.AddScoped<ExceptionFilter>();
 // ------------------ Services ------------------
 builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 builder.Services.AddScoped<ICloudinaryStorageService, CloudinaryStorageService>();
+builder.Services.AddHttpClient<IRazorpayServiceRepository, RazorpayService>();
 
 // ------------------ JWT Authentication ------------------
 var jwtSettings = builder.Configuration.GetSection("Jwt");

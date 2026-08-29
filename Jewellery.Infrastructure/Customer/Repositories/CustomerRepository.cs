@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Data;
+using static Jewellery.Domain.Entities.CustomerOrderModel;
 
 namespace Jewellery.Infrastructure.Transactions.Repositories
 {
@@ -199,6 +200,7 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             parameters.Add("@CustomerCode", _currentUser.UserId);
             parameters.Add("@AddressLabel", model.AddressLabel);
             parameters.Add("@AddressLine", model.AddressLine);
+            parameters.Add("@MobileNo", model.MobileNo);
             parameters.Add("@City", model.City);
             parameters.Add("@State", model.State);
             parameters.Add("@Pincode", model.Pincode);
@@ -207,5 +209,109 @@ namespace Jewellery.Infrastructure.Transactions.Repositories
             // Stored Procedure MUST return SELECT
             return await connection.QueryAsync("Jewellery.ManageCustomer_Address", parameters, commandType: CommandType.StoredProcedure);
         }
+
+        #region Customer Order
+
+        public async Task<dynamic> Order_PlaceAndReturnAsync(OrderPlaceRequest request)
+        {
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@TypeId", request.TypeId);
+            parameters.Add("@CustomerCode", _currentUser.UserId);
+            parameters.Add("@AddressId", request.AddressId);
+            parameters.Add("@PaymentMode", request.PaymentMode);
+
+            var result = await connection.QueryFirstOrDefaultAsync(
+                "Jewellery.Customer_Order_PlaceAndReturn",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            return result;
+        }
+
+        public async Task<dynamic> Order_UpdateRazorpayOrderIdAndReturnAsync(RazorpayOrderUpdateRequest request)
+        {
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@OrderId", request.OrderId);
+            parameters.Add("@RazorpayOrderId", request.RazorpayOrderId);
+
+            var result = await connection.QueryFirstOrDefaultAsync(
+                "Jewellery.Customer_Order_UpdateRazorpayOrderId",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            return result;
+        }
+
+        public async Task<dynamic> Payment_VerifyAndReturnAsync(PaymentVerifyRequest request)
+        {
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@OrderId", request.OrderId);
+            parameters.Add("@RazorpayOrderId", request.RazorpayOrderId);
+            parameters.Add("@RazorpayPaymentId", request.RazorpayPaymentId);
+            parameters.Add("@RazorpaySignature", request.RazorpaySignature);
+            parameters.Add("@IsValid", request.IsValid);
+
+            var result = await connection.QueryFirstOrDefaultAsync(
+                "Jewellery.Customer_Payment_VerifyAndReturn",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            return result;
+        }
+
+        public async Task<dynamic> Order_GetByIdAsync(int orderId)
+        {
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@OrderId", orderId);
+
+            using var multi = await connection.QueryMultipleAsync(
+                "Jewellery.Customer_Order_GetById",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            var order = await multi.ReadFirstOrDefaultAsync();
+            var items = await multi.ReadAsync();
+
+            return new { Order = order, Items = items };
+        }
+        public async Task<OrderManageResult> Order_ManageAndReturnAsync(OrderManageRequest request)
+        {
+            using var connection = new SqlConnection(_configuration.GetConnectionString(_currentUser.shopCode));
+            var parameters = new DynamicParameters();
+            parameters.Add("@TypeId", request.TypeId);
+            parameters.Add("@CustomerCode", _currentUser.UserId);
+            parameters.Add("@OrderId", request.OrderId);
+
+            if (request.TypeId == 1)
+            {
+                using var multi = await connection.QueryMultipleAsync(
+                    "Jewellery.Customer_Order_Manage", parameters, commandType: CommandType.StoredProcedure);
+
+                var order = await multi.ReadFirstOrDefaultAsync();
+
+                if (order == null || (int)order.Code != 1)
+                {
+                    return new OrderManageResult { Code = 0, Message = (string)(order?.Message ?? "Order not found") };
+                }
+
+                var items = await multi.ReadAsync();
+                return new OrderManageResult { Code = 1, Message = "SUCCESS", Order = order, Items = items };
+            }
+            else
+            {
+                var rows = await connection.QueryAsync(
+                    "Jewellery.Customer_Order_Manage", parameters, commandType: CommandType.StoredProcedure);
+                return new OrderManageResult { Code = 1, Message = "SUCCESS", Data = rows };
+            }
+        }
+        #endregion
     }
 }

@@ -13,6 +13,7 @@ namespace Jewellery.Application.Customer.Commands
         public int AddressId { get; set; } = 0;        // required for Update / Delete
         public string AddressLabel { get; set; } = "HOME";
         public string AddressLine { get; set; } = "";
+        public string MobileNo { get; set; } = "";
         public string City { get; set; } = "";
         public string? State { get; set; } = "";
         public string Pincode { get; set; } = "";
@@ -67,6 +68,7 @@ namespace Jewellery.Application.Customer.Commands
                     AddressId = request.AddressId,
                     AddressLabel = request.AddressLabel,
                     AddressLine = request.AddressLine,
+                    MobileNo=request.MobileNo,
                     City = request.City,
                     State = request.State,
                     Pincode = request.Pincode,
