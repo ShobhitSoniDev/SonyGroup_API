@@ -47,6 +47,7 @@ namespace Jewellery.Domain.Entities
         public string? AddressLabel { get; set; }
 
         public string? AddressLine { get; set; }
+        public string MobileNo { get; set; }
 
         public string? City { get; set; }
 

@@ -57,5 +57,23 @@ namespace Jewellery.API.Controllers.Master
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+        [HttpPost("PlaceOrder")]
+        public async Task<IActionResult> PlaceOrder([FromBody] PlaceOrderCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("PaymentVerify")]
+        public async Task<IActionResult> PaymentVerify([FromBody] VerifyPaymentCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        [HttpPost("Customer_Order_Manage")]
+        public async Task<IActionResult> Customer_Order_Manage([FromBody] ManageOrderCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
     }
 }
