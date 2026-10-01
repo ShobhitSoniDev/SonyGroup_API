@@ -36,9 +36,9 @@ namespace Jewellery.Application.Master.Commands
         : IRequestHandler<CustomerBillGenerateCommand, ResponseModel>
     {
         private readonly IReportsRepository _reportsRepository;
-        //private readonly IBlobStorageService _blobStorageService;
         private readonly IErrorLogRepository _errorLogRepository;
         private readonly ICloudinaryStorageService _cloudinaryStorageService;
+
         public CustomerBillGenerateCommandHandler(
             IReportsRepository customerRepository,
             IErrorLogRepository errorLogRepository,
@@ -100,37 +100,21 @@ namespace Jewellery.Application.Master.Commands
                 };
 
                 // ── Step 3 : Generate PDF using QuestPDF ──────────────────────
-                // Pure managed .NET — no native DLL, no browser, no binary download
-                // Works on: Local Windows, Azure App Service (Windows & Linux), Docker
                 byte[] pdfBytes = GeneratePdf(shop, customer, bill, billNo, labels);
 
-                // ── Step 4 : Upload to blob ───────────────────────────────────
+                // ── Step 4 : Upload to Cloudinary ─────────────────────────────
                 var fileName = $"{Guid.NewGuid()}.pdf";
 
-                //var uploadResult = await _blobStorageService.UploadFileAsync(
-                //    null, fileName, billBlobFolder, 0, 1, 0, pdfBytes, "application/pdf");
+                var uploadResult = await _cloudinaryStorageService.UploadFileAsync(
+                    null, fileName, billBlobFolder, 0, 1, 0, pdfBytes, "application/pdf");
 
+                if (!uploadResult.Success)
+                    return new ResponseModel { Code = 0, Message = "Upload failed.", Data = null };
 
-                //var uploadResult = await _cloudinaryStorageService.UploadFileAsync(null, fileName, billBlobFolder, 0, 1, 0, pdfBytes, "application/pdf"); // Second , Minute ,Hour
-
-                //if (!uploadResult.Success)
-                //    return new ResponseModel { Code = 0, Message = "Upload failed.", Data = null };
-
-
-                // Folder path
-                string FolderName = "CustomerBills";
-                string uploadFolder = Path.Combine(Directory.GetCurrentDirectory(),FolderName);
-
-                // Create folder if not exists
-                if (!Directory.Exists(uploadFolder))
-                {
-                    Directory.CreateDirectory(uploadFolder);
-                }
-
-                string filePath = Path.Combine(uploadFolder, fileName);
-
-                // Save file
-                File.WriteAllBytes(filePath, pdfBytes);
+                // ⚠️ NOTE: 'uploadResult.Data' / 'uploadResult.Url' — apni ICloudinaryStorageService
+                // ki actual return type check kar lena. Jo bhi property Cloudinary ka
+                // public secure_url return karti ho, wahi yahan use karo.
+                string fileUrl=""; // ya uploadResult.Url — jo bhi property ho
 
                 // ── Step 5 : Save bill history ────────────────────────────────
                 var billGenerateSave = new BillGenerateHistoryModel
@@ -139,8 +123,7 @@ namespace Jewellery.Application.Master.Commands
                     BillGenerateId = null,
                     CustomerCode = request.CustomerCode,
                     BillNo = billNo,
-                    //FilePath = billBlobFolder + "/" + fileName,
-                    FilePath = FolderName + "/" + fileName,
+                    FilePath = fileUrl,
                     Description = request.Description,
                     LanguageType = (int)request.Language,
                 };
@@ -151,7 +134,7 @@ namespace Jewellery.Application.Master.Commands
                 {
                     Code = 1,
                     Message = "SUCCESS",
-                    Data = filePath
+                    Data = fileUrl   // ⭐ Cloudinary ka HTTPS URL — frontend me directly open hoga
                 };
             }
             catch (Exception ex)
@@ -169,7 +152,6 @@ namespace Jewellery.Application.Master.Commands
                     LineNumber = lineNumber ?? 0,
                     CreatedDate = DateTime.Now
                 };
-                // ✅ Save Log in DB (via Infrastructure)
                 _errorLogRepository.SaveErrorAsync(errorLog);
                 return new ResponseModel
                 {
@@ -181,9 +163,6 @@ namespace Jewellery.Application.Master.Commands
 
         // ═════════════════════════════════════════════════════════════════════
         // PDF GENERATION — QuestPDF Community Edition
-        // Pure managed .NET — no native DLL, no browser, no binary downloads.
-        // Works on: Local Windows, Azure App Service (Windows & Linux), Docker.
-        // NuGet: Install-Package QuestPDF
         // ═════════════════════════════════════════════════════════════════════
         private static byte[] GeneratePdf(
             ShopInfo shop, CustomerInfo customer, BillInfo bill, string billNo, BillLabels L)
@@ -232,7 +211,6 @@ namespace Jewellery.Application.Master.Commands
                            .Padding(12)
                            .Row(row =>
                            {
-                               // Customer
                                row.RelativeItem().Column(c =>
                                {
                                    c.Item().Text(L.CustomerLabel)
@@ -243,7 +221,6 @@ namespace Jewellery.Application.Master.Commands
                                     .FontSize(10).FontColor("#555555");
                                });
 
-                               // Bill No
                                row.RelativeItem().AlignCenter().Column(c =>
                                {
                                    c.Item().AlignCenter().Text(L.BillNoLabel)
@@ -252,7 +229,6 @@ namespace Jewellery.Application.Master.Commands
                                     .Bold().FontSize(13);
                                });
 
-                               // Date
                                row.RelativeItem().AlignRight().Column(c =>
                                {
                                    c.Item().AlignRight().Text(L.DateLabel)
@@ -268,24 +244,21 @@ namespace Jewellery.Application.Master.Commands
                         {
                             col.Item().Padding(12).Column(sec =>
                             {
-                                // Section title
                                 sec.Item()
                                    .BorderBottom(1).BorderColor("#C9A84C")
                                    .PaddingBottom(5)
                                    .Text(L.NewSectionTitle)
                                    .FontSize(10).Bold().FontColor("#B8860B");
 
-                                // Table
                                 sec.Item().PaddingTop(6).Table(table =>
                                 {
                                     table.ColumnsDefinition(c =>
                                     {
-                                        c.RelativeColumn(4); // Item name
-                                        c.RelativeColumn(2); // Weight
-                                        c.RelativeColumn(2); // Amount
+                                        c.RelativeColumn(4);
+                                        c.RelativeColumn(2);
+                                        c.RelativeColumn(2);
                                     });
 
-                                    // Header row
                                     table.Header(h =>
                                     {
                                         h.Cell().BorderBottom(1).BorderColor("#DDDDDD")
@@ -304,7 +277,6 @@ namespace Jewellery.Application.Master.Commands
                                          .FontSize(9).FontColor("#888888").Bold();
                                     });
 
-                                    // Data rows
                                     foreach (var item in bill.NewItems)
                                     {
                                         table.Cell()
@@ -331,14 +303,12 @@ namespace Jewellery.Application.Master.Commands
                         {
                             col.Item().Padding(12).Column(sec =>
                             {
-                                // Section title
                                 sec.Item()
                                    .BorderBottom(1).BorderColor("#E0A0A0")
                                    .PaddingBottom(5)
                                    .Text(L.OldSectionTitle)
                                    .FontSize(10).Bold().FontColor("#8B2020");
 
-                                // Table
                                 sec.Item().PaddingTop(6).Table(table =>
                                 {
                                     table.ColumnsDefinition(c =>
@@ -396,7 +366,6 @@ namespace Jewellery.Application.Master.Commands
                            .Padding(14)
                            .Column(summ =>
                            {
-                               // New total row
                                summ.Item()
                                    .BorderBottom(1).BorderColor("#DDDDDD")
                                    .PaddingVertical(5)
@@ -407,7 +376,6 @@ namespace Jewellery.Application.Master.Commands
                                         .Text($"Rs.{newTotal:N0}").FontSize(12);
                                    });
 
-                               // Old deduction row (only if old items exist)
                                if (oldTotal > 0)
                                {
                                    summ.Item()
@@ -422,7 +390,6 @@ namespace Jewellery.Application.Master.Commands
                                        });
                                }
 
-                               // Net payable row
                                summ.Item()
                                    .BorderTop(2).BorderColor("#C9A84C")
                                    .PaddingTop(8)
@@ -587,7 +554,6 @@ namespace Jewellery.Application.Master.Commands
     }
 
     // ── BillLabels DTO ────────────────────────────────────────────────────────
-    // (HtmlLang and PrintBtn removed — not needed for QuestPDF)
     internal class BillLabels
     {
         public string SubTitle { get; set; }

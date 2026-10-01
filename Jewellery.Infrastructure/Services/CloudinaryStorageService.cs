@@ -73,15 +73,22 @@ namespace Jewellery.Infrastructure.Services
 
                 using (stream)
                 {
+                    //var uploadParams = new RawUploadParams
+                    //{
+                    //    File = new FileDescription(fileName, stream),
+                    //    PublicId = fileNameNoExt,
+                    //    Folder = folderName,
+                    //    Overwrite = true,
+                    //    Type = "authenticated"
+                    //};
                     var uploadParams = new RawUploadParams
                     {
                         File = new FileDescription(fileName, stream),
                         PublicId = fileNameNoExt,
                         Folder = folderName,
                         Overwrite = true,
-                        Type = "authenticated"
+                        Type = "upload"   // ⭐ CHANGED — "authenticated" ki jagah "upload" (public)
                     };
-
 
 
                     // resourceType "auto" works for images, pdfs, videos, etc.
@@ -174,11 +181,12 @@ namespace Jewellery.Infrastructure.Services
             // Use the generic Url builder (NOT UrlImgUp) and explicitly set the
             // resource type that matches how the file was actually uploaded.
             var url = _cloudinary.Api.Url
-                .ResourceType(resourceType)
-                .Type("authenticated")
-                .Signed(true)
-                .Secure(true)
-                .BuildUrl(publicId);
+    .ResourceType(resourceType)
+    .Type("authenticated")
+    .Signed(true)
+    .Secure(true)
+    .Format("pdf")   // ya publicId mein already ".pdf" ho
+    .BuildUrl(publicId);
 
 
             // FIX: AuthToken.Generate() internally does culture-sensitive number
